@@ -89,7 +89,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch FAILED "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || fail get_cpu_arch FAILED "Failed to get CPU arch, please contact the developer."
 
 # 清理逻辑：保留本次的LOG_FILE,下次运行时会删除历史的LOG_FILE。
 # 保留安装脚本本身
@@ -305,11 +305,6 @@ setup_crontab () {
 }
 
 remove_crontab () {
-
-    if [ $IS_SUPER == false ]; then
-        return
-    fi
-
     local tmpcron
     local datatemp=$(date +%s)
 
@@ -318,6 +313,10 @@ remove_crontab () {
 
     # 下面这段代码是为了确保修改的crontab能立即生效
     ps -eo pid,comm | grep cron |awk '{print$1}' | xargs kill -9
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if [ $IS_SUPER == true ]; then
+        ps -eo pid,comm | grep cron |awk '{print$1}' | xargs kill -9
+    fi
 }
 
 setup_startup_scripts () {
@@ -333,10 +332,25 @@ setup_startup_scripts () {
         tmp_rcfile=$(grep -v "${AGENT_SETUP_PATH}/bin/gsectl")
         echo "$tmp_rcfile" >$rcfile
     else
-	touch "$rcfile" && chmod 755 "$rcfile"
+	    touch "$rcfile" && chmod 755 "$rcfile"
     fi
 
     echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+}
+
+remove_startup () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
+    local rcfile=/etc/rc.local
+
+    if [ -f $rcfile ];then
+        tmp_rcfile=$(grep -v "${AGENT_SETUP_PATH}/bin/gsectl")
+        echo "$tmp_rcfile" >$rcfile
+    else
+	    touch "$rcfile" && chmod 755 "$rcfile"
+    fi
 }
 
 start_agent () {
@@ -422,6 +436,16 @@ recovery_config_file () {
     done
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
@@ -430,6 +454,10 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${AGENT_SETUP_PATH} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+        remove_startup
+        log remove_agent - "rc.local startup script removed"
+
         log remove_agent DONE "agent removed"
         exit 0
     else
@@ -516,6 +544,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status
 
     # 区分下载版本

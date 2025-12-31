@@ -40,7 +40,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
 PKG_NAME=gse_client-linux-${CPU_ARCH}.tgz
 
@@ -78,6 +78,9 @@ get_os_type () {
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
     elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
         OS_TYPE="redhat"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    else
+        OS_TYPE="other"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
@@ -391,10 +394,6 @@ pre_view () {
 }
 
 remove_crontab () {
-    if [ $IS_SUPER == false ]; then
-        return
-    fi
-
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -402,9 +401,11 @@ remove_crontab () {
     crontab -l | grep -v "${AGENT_SETUP_PATH}"  >"$tmpcron"
     crontab "$tmpcron" && rm -f "$tmpcron"
 
-    # 下面这段代码是为了确保修改的crontab能立即生效
-    if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if [ $IS_SUPER == true ]; then
+        if pgrep -x crond &>/dev/null; then
+            pkill -HUP -x crond
+        fi
     fi
 }
 
@@ -425,6 +426,17 @@ setup_startup_scripts () {
     sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
 
     echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+}
+
+remove_startup () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
 }
 
 start_agent () {
@@ -516,6 +528,16 @@ recovery_config_file () {
     done
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
@@ -530,6 +552,10 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${AGENT_SETUP_PATH} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+        remove_startup
+        log remove_agent - "startup script removed"
+
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -601,6 +627,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status path
     local tmp_stdout tmp_stderr curl_pid
 
