@@ -56,10 +56,13 @@ get_os_type () {
     elif [[ "${OS_INFO,,}" =~ "suse" ]]; then
         OS_TYPE="suse"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
-	  elif [[ "${OS_INFO,,}" =~ "sunos" ]]; then
+	elif [[ "${OS_INFO,,}" =~ "sunos" ]]; then
         OS_TYPE="sunos"
         RC_LOCAL_FILE="/etc/rc3.d/S99agentstart"
         [ -f /etc/rc3.d/S99agentstart ] || touch /etc/rc3.d/S99agentstart
+    else
+        OS_TYPE="other"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
 
@@ -109,7 +112,6 @@ validate_setup_path () {
         /sys
         /sbin
         /root
-        /home
     )
 
     local invalid_path=(
@@ -341,13 +343,19 @@ remove_crontab () {
     crontab -l | grep -v "bin/gsectl"  >"$tmpcron"
     crontab "$tmpcron" && rm -f "$tmpcron"
 
-    # 下面这段代码是为了确保修改的crontab能立即生效
-    if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if [ $IS_SUPER == true ]; then
+        if pgrep -x crond &>/dev/null; then
+            pkill -HUP -x crond
+        fi
     fi
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local os_type=$OS_TYPE
     local rcfile=$RC_LOCAL_FILE
@@ -356,6 +364,17 @@ setup_startup_scripts () {
     #sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
 
     echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >$rcfile
+}
+
+remove_startup () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
 }
 
 start_agent () {
@@ -419,7 +438,9 @@ backup_config_file () {
             tmp_backup_file=$(mktemp "${TMP_DIR}"/nodeman_${file}_config.XXXXXXX)
             log backup_config_file - "backup $file to $tmp_backup_file"
             cp -rf "${AGENT_SETUP_PATH}"/etc/"${file}" "${tmp_backup_file}"
-            chattr +i "${tmp_backup_file}"
+            if [ $IS_SUPER == true ]; then
+                chattr +i "${tmp_backup_file}"
+            fi
         fi
     done
 }
@@ -430,10 +451,22 @@ recovery_config_file () {
         time_filter_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*")
         [ -z "${time_filter_config_file}" ] && return 0
         latest_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*" | xargs ls -rth | tail -n 1)
-        chattr -i "${latest_config_file}"
+        if [ $IS_SUPER == true ]; then
+            chattr -i "${latest_config_file}"
+        fi
         cp -rf "${latest_config_file}" "${AGENT_SETUP_PATH}"/etc/"${file}"
         rm -f "${latest_config_file}"
         log recovery_config_file - "recovery ${AGENT_SETUP_PATH}/etc/${file} from $latest_config_file"
+    done
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
     done
 }
 
@@ -446,6 +479,8 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${AGENT_SETUP_PATH} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -486,11 +521,13 @@ setup_agent () {
 
     cd "$AGENT_SETUP_PATH/.." && tar xf "$TMP_DIR/$PKG_NAME"
 
-    # update gsecmdline under /bin
-    cp -fp plugins/bin/gsecmdline /bin/
-    # 注意这里 /bin/ 可能是软链
-    cp -fp plugins/etc/gsecmdline.conf /bin/../etc/
-    chmod 775 /bin/gsecmdline
+    if [ $IS_SUPER == true ]; then
+        # update gsecmdline under /bin
+        cp -fp plugins/bin/gsecmdline /bin/
+        # 注意这里 /bin/ 可能是软链
+        cp -fp plugins/etc/gsecmdline.conf /bin/../etc/
+        chmod 775 /bin/gsecmdline
+    fi
 
     # setup config file
     get_config
@@ -515,6 +552,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status path
     local tmp_stdout tmp_stderr curl_pid
 
@@ -841,6 +883,13 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
         *)  _help ;;
     esac
 done
+
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do

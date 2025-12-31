@@ -73,13 +73,13 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -m" || get_cpu_arch "uname -p"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -m" || get_cpu_arch "uname -p"  || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
 PKG_NAME=gse_client-mac-${CPU_ARCH}.tgz
 
 
 get_daemon_file () {
-    daemon_fill_path="/Library/LaunchDaemons/"
+    DAEMON_FILE_PATH="/Library/LaunchDaemons/"
     setup_path=$(echo ${AGENT_SETUP_PATH%*/} | tr '\/' '.')
     DAEMON_FILE_NAME="com.tencent.gse_${NODE_TYPE}${setup_path}.Daemon.plist"
 }
@@ -392,9 +392,8 @@ setup_startup_scripts () {
     fi
 
     get_daemon_file
-    local damonfile=$DAEMON_FILE_NAME
 
-    cat >$damonfile << EOF
+    bash -c "cat >$DAEMON_FILE_PATH$DAEMON_FILE_NAME" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -418,6 +417,18 @@ setup_startup_scripts () {
 </dict>
 </plist>
 EOF
+    launchctl load $DAEMON_FILE_NAME
+}
+
+remove_startup () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
+    get_daemon_file
+
+    launchctl unload $DAEMON_FILE_NAME
+    rm -f $DAEMON_FILE_PATH$DAEMON_FILE_NAME
 }
 
 start_agent () {
@@ -507,6 +518,16 @@ recovery_config_file () {
     done
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
@@ -517,6 +538,10 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${AGENT_SETUP_PATH} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+        remove_startup
+        log remove_agent - "startup script removed"
+
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -588,6 +613,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status
     local tmp_stdout tmp_stderr curl_pid
 

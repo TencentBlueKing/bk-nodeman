@@ -77,6 +77,9 @@ get_os_type () {
     elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
         OS_TYPE="redhat"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    else
+        OS_TYPE="other"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
 
@@ -311,19 +314,17 @@ report_mkdir () {
 }
 
 remove_crontab () {
-    if [ $IS_SUPER == false ]; then
-        return
-    fi
-
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
     crontab -l | grep -v "bin/gsectl"  >"$tmpcron"
     crontab "$tmpcron" && rm -f "$tmpcron"
 
-    # 下面这段代码是为了确保修改的crontab能立即生效
-    if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if [ $IS_SUPER == true ]; then
+        if pgrep -x crond &>/dev/null; then
+            pkill -HUP -x crond
+        fi
     fi
 }
 
@@ -514,6 +515,16 @@ stop_proxy () {
     done
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 clean_up_proxy_directory () {
     for dir in "${PROXY_CLEAN_UP_DIRS[@]}"; do
         rm -rf "${AGENT_SETUP_PATH}"/"${dir}"
@@ -528,7 +539,7 @@ remove_proxy () {
 
     if [[ "$REMOVE" == "TRUE" ]]; then
         unregister_agent_id SKIP
-        clean_up_proxy_directory
+        remove_directory "$AGENT_SETUP_PATH" "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
         log remove_proxy DONE "proxy removed"
         exit 0
     else
