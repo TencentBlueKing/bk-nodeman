@@ -325,28 +325,6 @@ export function getWindowHeight() {
 }
 
 /**
- * 简单的 loadScript
- *
- * @param {string} url js 地址
- * @param {Function} callback 回调函数
- */
-export function loadScript(url: string, callback: Function) {
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = url;
-
-  script.onerror = () => {
-    callback(new Error(`Failed to load: ${url}`));
-  };
-
-  script.onload = () => {
-    callback();
-  };
-
-  document.getElementsByTagName('head')[0].appendChild(script);
-}
-
-/**
  * 函数防抖
  * @param {*} fn 执行的函数
  * @param {*} delay 延时时间

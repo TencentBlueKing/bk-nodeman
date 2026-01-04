@@ -395,7 +395,37 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
           console.error(err);
         }
       } else {
-        const api = `${overwriteUrl}/api/c/compapi/v2/usermanage/fe_update_user_language/?language=${item.id}`;
+        // URL安全检查
+        if (!overwriteUrl || typeof overwriteUrl !== 'string' || overwriteUrl.trim() === '') {
+          console.error('Invalid overwriteUrl parameter');
+          return;
+        }
+        
+        // URL消毒：验证协议和格式
+        let safeOverwriteUrl: string;
+        try {
+          const urlObj = new URL(overwriteUrl.trim(), window.location.origin);
+          if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+            console.error('Invalid URL protocol');
+            return;
+          }
+          safeOverwriteUrl = urlObj.href; // 使用完整的href而不是origin
+        } catch (error) {
+          console.error('Invalid URL format');
+          return;
+        }
+        
+        // 参数消毒：只允许字母数字和下划线
+        const safeLanguage = (item.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        if (!safeLanguage) {
+          console.error('Invalid language parameter');
+          return;
+        }
+        
+        // 使用URLSearchParams进行安全参数化
+        const apiUrl = new URL('/api/c/compapi/v2/usermanage/fe_update_user_language/', safeOverwriteUrl);
+        apiUrl.searchParams.set('language', encodeURIComponent(safeLanguage));
+        const api = apiUrl.toString();
         const scriptId = 'jsonp-script';
         const prevJsonpScript = document.getElementById(scriptId);
         if (prevJsonpScript) {
