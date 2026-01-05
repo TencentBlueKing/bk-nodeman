@@ -96,6 +96,36 @@ export default class App extends Vue {
     }
     MainStore.setLanguage(window.language);
     this.noticeEnable = window.PROJECT_CONFIG?.ENABLE_NOTICE_CENTER === 'True';
+    // 安全构建notice API URL，支持相对路径和完整URL
+    const siteUrl = window.PROJECT_CONFIG?.SITE_URL;
+    if (siteUrl && typeof siteUrl === 'string' && siteUrl.trim()) {
+      const cleanUrl = siteUrl.trim();
+
+      // 检查是否是相对路径（以/开头）
+      if (cleanUrl.startsWith('/')) {
+        // 相对路径：直接拼接
+        const basePath = cleanUrl.endsWith('/') ? cleanUrl.slice(0, -1) : cleanUrl;
+        this.noticeApi = `${basePath}/notice/announcements/`;
+      } else {
+        // 可能是完整URL，进行安全验证
+        try {
+          const urlObj = new URL(cleanUrl, window.location.origin);
+          if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
+            const baseUrl = urlObj.href.endsWith('/') ? urlObj.href.slice(0, -1) : urlObj.href;
+            this.noticeApi = `${baseUrl}/notice/announcements/`;
+          } else {
+            // 协议不安全，使用默认路径
+            this.noticeApi = '/notice/announcements/';
+          }
+        } catch (error) {
+          // URL格式无效，可能是无效的路径，使用默认路径
+          this.noticeApi = '/notice/announcements/';
+        }
+      }
+    } else {
+      // 没有配置SITE_URL，使用默认路径
+      this.noticeApi = '/notice/announcements/';
+    }
     this.handleInit();
     MainStore.getPublicKey().then(({ name = '', content = '', cipher_type = 'RSA' }) => {
       this.$safety.updateInstance({
