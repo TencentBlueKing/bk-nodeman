@@ -144,7 +144,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         account_set: set = set()
         for host in job_params["target_server"][host_interaction_from]:
             target_host = (
-                models.Host.objects.get(inner_ip=host["ip"])
+                models.Host.objects.get(inner_ip=host["ip"], bk_cloud_id=host["bk_cloud_id"])
                 if host_interaction_from == "ip_list"
                 else models.Host.objects.get(bk_host_id=host)
             )

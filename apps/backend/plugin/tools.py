@@ -60,7 +60,7 @@ class VariableType(enum.EnhanceEnum):
 
 class LiteralField(serializers.Field):
 
-    default_error_messages = {"invalid": _("Type must be one of string, boolean, number")}
+    default_error_messages = {"invalid": _("类型必须为字符串、数字、布尔值中的一种")}
 
     def to_internal_value(self, data):
         if not isinstance(data, (str, int, float, bool)):
@@ -110,9 +110,7 @@ class VariableNodeSerializer(serializers.Serializer):
                 # 尝试将字面量转为浮点数
                 return float(default_value)
             except ValueError:
-                raise ValidationError(
-                    _("Failed to parse '{default_value}' as number".format(default_value=default_value))
-                )
+                raise ValidationError(_("未能将'{default_value}'解析为数字".format(default_value=default_value)))
 
         # 列表和字典不支持默认值
         return None
@@ -125,7 +123,7 @@ class VariableNodeSerializer(serializers.Serializer):
             attrs.pop("properties", None)
             attrs["items"] = attrs.get("items", {})
             if not attrs["items"]:
-                raise ValidationError(_("items cannot be {}"))
+                raise ValidationError(_("items不能为空"))
 
         # 列表和字典不支持默认值
         if attrs["type"] in [VariableType.ARRAY, VariableType.OBJECT]:
