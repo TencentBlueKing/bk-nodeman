@@ -71,6 +71,8 @@ __all__ = [
     "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
     "TXY_ENDPOINT",
+    # 当前环境为仅GSE2环境
+    "BKAPP_IS_PURE_GSE2_VERSION",
 ]
 
 # ===============================================================================
@@ -78,6 +80,7 @@ __all__ = [
 # ===============================================================================
 # 运行环境，ce / ee / ieod，设置为 ce 将会改变 gse 端口的默认配置
 BKAPP_RUN_ENV = get_type_env(key="BKAPP_RUN_ENV", default="ee", _type=str)
+BKAPP_IS_PURE_GSE2_VERSION = get_type_env(key="BKAPP_IS_PURE_GSE2_VERSION", default=False, _type=bool)
 # 后台是否为 PaaS 部署
 BKAPP_IS_PAAS_DEPLOY = BKAPP_IS_PAAS_DEPLOY
 # 是否开启动态主机配置协议适配

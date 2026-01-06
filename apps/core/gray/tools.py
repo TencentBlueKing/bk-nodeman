@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import typing
 
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent.cache import FuncCacheDecorator
@@ -55,9 +56,7 @@ class GrayTools:
         if is_install_other_agent:
             # 注入AP ID 优先使用注入AP 的GSE 版本
             gse_version: str = self.ap_id_obj_map[ap_id].gse_version
-        elif node_man_models.GlobalSettings.get_config(
-            node_man_models.GlobalSettings.KeyEnum.IS_PURE_GSE2_VERSION.value, False
-        ):
+        elif settings.BKAPP_IS_PURE_GSE2_VERSION:
             # 纯 GSE2.0 版本
             gse_version: str = GseVersion.V2.value
         elif self.is_gse2_gray(bk_biz_id):

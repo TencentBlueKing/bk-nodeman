@@ -475,6 +475,8 @@ config:
   bkAppAutomaticChoiceCloudId: -1
   ## 未分配管控区域ID
   bkAppUnassignedCloudId: 90000001
+  ## 当前环境为仅GSE2环境
+  bkAppIsPureGse2Version: true
 
 
 ## --------------------------------------

@@ -186,8 +186,6 @@ class GlobalSettings(models.Model):
         UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
         # 禁用的订阅
         DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
-        # 是否默认当前环境为仅GSE2环境
-        IS_PURE_GSE2_VERSION = "IS_PURE_GSE2_VERSION"
         # 管理GSE2 Agent监听BT端口开关
         GSE2_AGENT_LISTEN_BT_SOCKET = "GSE2_AGENT_LISTEN_BT_SOCKET"
         # 禁用的订阅
