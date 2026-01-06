@@ -13,7 +13,7 @@ from django.db import migrations
 
 def update_ap_config(apps, schema_editor):
     AccessPoint = apps.get_model("node_man", "AccessPoint")
-    AccessPoint.objects.filter(name="默认接入点").update(region_id="Default AccessPoint")
+    AccessPoint.objects.filter(name="默认接入点").update(name="Default AccessPoint")
 
 
 class Migration(migrations.Migration):
