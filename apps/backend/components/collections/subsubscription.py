@@ -73,34 +73,23 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
     @classmethod
     def bulk_get_subscription_task_status(cls, subscription_ids: List[int]) -> List[List[Dict]]:
         params_list = [
-            {
-                "params": {
-                    "subscription_id": subscription_id,
-                }
-            }
+            {"params": {"subscription_id": subscription_id, "need_detail": True}}
             for subscription_id in subscription_ids
         ]
         task_results = request_multi_thread(cls.get_subscription_task_status, params_list, get_data=lambda x: [x])
         return task_results
 
     @staticmethod
-    def extract_failed_reason_from_steps(steps: List[Dict]) -> str:
-        failed_reasons = []
+    def extract_task_log_from_steps(steps: List[Dict]) -> str:
+        step_result = []
         for step in steps:
-            if step["status"] != constants.JobStatusType.FAILED:
-                continue
-            node_name = step.get("node_name")
             for host in step["target_hosts"]:
                 for sub_step in host["sub_steps"]:
-                    if sub_step["status"] != constants.JobStatusType.FAILED:
+                    if sub_step["status"] in constants.JobStatusType.PROCESSING_STATUS:
                         continue
-                    sub_step_node_name = sub_step.get("node_name")
-                    failed_reasons.append(
-                        _("{node_name}-{sub_step_node_name} 失败").format(
-                            node_name=node_name, sub_step_node_name=sub_step_node_name
-                        )
-                    )
-        return ", ".join(failed_reasons)
+                    log_text = sub_step.get("log", "").rstrip()
+                    step_result.append("{log_text}".format(log_text=log_text))
+        return "\n".join(step_result)
 
     def handle_task_results(self, task_results_list: List[List[Dict]]) -> Tuple[bool, Dict[int, str], Dict[int, str]]:
         is_finished = True
@@ -110,18 +99,30 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             for task_result in task_results:
                 bk_host_id = task_result["instance_info"]["host"]["bk_host_id"]
                 node_name = task_result["steps"][0]["node_name"]
-                if task_result["status"] in [constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING]:
+                detail_log = self.extract_task_log_from_steps(task_result["steps"])
+                if task_result["status"] in constants.JobStatusType.PROCESSING_STATUS:
                     is_finished = False
-                    failed_host_reason_map[bk_host_id].append(_("{node_name} 执行超时").format(node_name=node_name))
+                    failed_host_reason_map[bk_host_id].append(
+                        _("{node_name} 执行超时, 任务详情:\n##########\n{detail_log}").format(
+                            node_name=node_name, detail_log=detail_log
+                        )
+                    )
                 elif task_result["status"] == constants.JobStatusType.FAILED:
-                    failed_reason = self.extract_failed_reason_from_steps(task_result["steps"])
-                    failed_host_reason_map[bk_host_id].append(failed_reason)
+                    failed_host_reason_map[bk_host_id].append(
+                        _("{node_name} 执行失败, 任务详情:\n##########\n{detail_log}").format(
+                            node_name=node_name, detail_log=detail_log
+                        )
+                    )
                 elif task_result["status"] == constants.JobStatusType.SUCCESS:
-                    succeeded_host_message_map[bk_host_id].append(_("{node_name} 执行成功").format(node_name=node_name))
+                    succeeded_host_message_map[bk_host_id].append(
+                        _("{node_name} 执行成功, 任务详情:\n##########\n{detail_log}").format(
+                            node_name=node_name, detail_log=detail_log
+                        )
+                    )
         for bk_host_id, failed_reasons in failed_host_reason_map.items():
-            failed_host_reason_map[bk_host_id] = ", ".join(failed_reasons)
+            failed_host_reason_map[bk_host_id] = "\n==========\n".join(failed_reasons)
         for bk_host_id, messages in succeeded_host_message_map.items():
-            succeeded_host_message_map[bk_host_id] = ", ".join(messages)
+            succeeded_host_message_map[bk_host_id] = "\n==========\n".join(messages)
         return is_finished, failed_host_reason_map, succeeded_host_message_map
 
     def handle_task_result_message(
