@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from apps.backend.components.collections.agent_new import components
 from apps.node_man.constants import NodeType
+from apps.node_man.models import GlobalSettings
 from pipeline.builder import ServiceActivity, Var
 
 
@@ -181,7 +182,79 @@ class AgentManager(object):
             script = fh.read()
         # 脚本模板中存在 {print $2} 等和 format 关键字冲突的片段
         # 此处的字符串渲染采用 % 的方式
+        nginx_http_whitelist = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.NGINX_HTTP_WHITELIST.value, default=[]
+        )
+        if not nginx_http_whitelist:
+            server_tpl = """
+    server {
+        listen %(bk_nodeman_nginx_download_port)s;
+        listen [::]:%(bk_nodeman_nginx_download_port)s;
+        server_name localhost;
+        root %(nginx_path)s;
+
+        location / {
+            index index.html;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+    server {
+        listen %(bk_nodeman_nginx_proxy_pass_port)s;
+        listen [::]:%(bk_nodeman_nginx_proxy_pass_port)s;
+        server_name localhost;
+        resolver ${nginx_dns_list[@]};
+        proxy_connect;
+        proxy_connect_allow 443 563;
+        location / {
+            proxy_pass http://\$http_host\$request_uri;
+        }
+    }
+        """
+        else:
+            server_tpl = """
+    map \$host \$http_whitelist {
+        default           0;
+        %(nginx_http_whitelist)s
+    }
+    server {
+        listen %(bk_nodeman_nginx_download_port)s;
+        listen [::]:%(bk_nodeman_nginx_download_port)s;
+        server_name localhost;
+        root %(nginx_path)s;
+
+        location / {
+            index index.html;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+    server {
+        listen %(bk_nodeman_nginx_proxy_pass_port)s;
+        listen [::]:%(bk_nodeman_nginx_proxy_pass_port)s;
+        server_name localhost;
+        resolver ${nginx_dns_list[@]};
+        location / {
+            if (\$http_whitelist = 0) {
+                return 403;
+            }
+            proxy_pass http://\$http_host\$request_uri;
+        }
+    }
+        """
+
+        server_tpl = server_tpl % {
+            "nginx_path": settings.DOWNLOAD_PATH,
+            "bk_nodeman_nginx_download_port": settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
+            "bk_nodeman_nginx_proxy_pass_port": settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
+            "nginx_http_whitelist": "\n        ".join(f"{host}    1;" for host in nginx_http_whitelist),
+        }
         script_content = script % {
+            "nginx_server": server_tpl,
             "nginx_path": settings.DOWNLOAD_PATH,
             "bk_nodeman_nginx_download_port": settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
             "bk_nodeman_nginx_proxy_pass_port": settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,

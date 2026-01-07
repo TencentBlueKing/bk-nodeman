@@ -196,6 +196,7 @@ class GlobalSettings(models.Model):
         # 无需排队执行的订阅白名单
         UNQUEUED_SUBSCRIPTION_WHITELIST = "UNQUEUED_SUBSCRIPTION_WHITELIST"
         AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY = "AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY"
+        NGINX_HTTP_WHITELIST = "NGINX_HTTP_WHITELIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

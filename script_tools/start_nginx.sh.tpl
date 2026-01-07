@@ -66,31 +66,8 @@ http {
     include       mime.types;
     default_type  application/octet-stream;
     sendfile        on;
-    server {
-        listen %(bk_nodeman_nginx_download_port)s;
-        listen [::]:%(bk_nodeman_nginx_download_port)s;
-        server_name localhost;
-        root %(nginx_path)s;
 
-        location / {
-            index index.html;
-        }
-        error_page   500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   html;
-        }
-    }
-    server {
-        listen %(bk_nodeman_nginx_proxy_pass_port)s;
-        listen [::]:%(bk_nodeman_nginx_proxy_pass_port)s;
-        server_name localhost;
-        resolver ${nginx_dns_list[@]};
-        proxy_connect;
-        proxy_connect_allow 443 563;
-        location / {
-            proxy_pass http://\$http_host\$request_uri;
-        }
-    }
+    %(nginx_server)s
 }" > /opt/nginx-portable/conf/nginx.conf;
 /opt/nginx-portable/nginx-portable start;
 sleep 5
