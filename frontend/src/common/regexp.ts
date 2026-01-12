@@ -24,6 +24,7 @@ export const regExclusiveFilterIpMixin = window.$DHCP ? new RegExp(`^\\d+:(${IpS
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
 export const regUrlMixinIp = new RegExp(`^${protocolStr}${hostnameStr}${portStr}${pathnameStr}$`);
 export const regNormalText = /^[\u4e00-\u9fa5A-Za-z0-9-_]+$/;
+export const regNormalTextWithSpace = /^[\u4e00-\u9fa5A-Za-z0-9-_\s]+$/;
 export const regNaturalNumber = /^(0|[1-9][0-9]*)$/; // 自然数 | 非负整数
 export const regInteger = /^-?\d+$/; // 整数
 export function regFnFileType(type: string) { // 文件类型

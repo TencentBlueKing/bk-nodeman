@@ -148,7 +148,7 @@ import SetupFormTable from './step-form-table.vue';
 import { isEmpty } from '@/common/util';
 import { stepHost } from './apFormConfig';
 import { regUrlMixinIp, regFnSysPath } from '@/common/regexp';
-import {  reguRequired, reguUrlMixinIp, reguPort, reguFnName, reguIPMixins, reguDomainOrIp } from '@/common/form-check';
+import {  reguRequired, reguUrlMixinIp, reguPort, reguFnNameNoSpace, reguIPMixins, reguDomainOrIp } from '@/common/form-check';
 
 type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
 
@@ -313,7 +313,7 @@ export default class StepHost extends formLabelMixin {
   ];
   private rules = {
     required: [reguRequired],
-    name: [reguRequired, reguFnName()],
+    name: [reguRequired, reguFnNameNoSpace()],
     url: [reguRequired, reguUrlMixinIp],
     callback: [
       {

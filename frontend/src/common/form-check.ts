@@ -7,6 +7,7 @@ import {
   regUrl,
   regUrlMixinIp,
   regNormalText,
+  regNormalTextWithSpace,
   regNaturalNumber,
   regInteger,
   regFnSysPath,
@@ -92,6 +93,15 @@ export function reguFnName(params?: { max: number } = {}) {
   const { max = 32 } = params;
   return {
     validator: (val: string) => regNormalText.test(val) && regrLengthCheck(val, max),
+    message: window.i18n.t('正常输入内容校验', [max]),
+    trigger: 'blur',
+  };
+}
+// 在reguFnName基础上增加一个方法，放开中间不能使用空格的限制
+export function reguFnNameNoSpace(params?: { max: number } = {}) {
+  const { max = 32 } = params;
+  return {
+    validator: (val: string) => regNormalTextWithSpace.test(val) && regrLengthCheck(val, max),
     message: window.i18n.t('正常输入内容校验', [max]),
     trigger: 'blur',
   };
