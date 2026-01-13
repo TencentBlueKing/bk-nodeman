@@ -88,6 +88,7 @@ class Command(BaseCommand):
                         file_name=upload_record.file_name,
                         is_release=True,
                         is_template_load=True,
+                        tenant_id="system"
                     )
                 except Exception as error:
                     # 但是需要注意这个文件可能是已经存在的文件，会有导入失败的问题

@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from __future__ import absolute_import, unicode_literals
 
 import datetime
+import re
 import time
 from functools import partial
 from typing import Optional
@@ -298,3 +299,29 @@ def get_user_timezone(request):
             return default_tz
     except Exception:
         return default_tz
+
+
+def format_log_time(
+    log_content, 
+    original_timezone="Asia/Shanghai",
+    target_timezone="UTC",
+    output_format="%Y-%m-%d %H:%M:%S%z"
+):
+    if not log_content:
+        return log_content
+    pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+    
+    orig_tz = pytz.timezone(original_timezone)
+    tgt_tz = pytz.timezone(target_timezone)
+    
+    def replace_match(match):
+        time_str = match.group(1)
+        try:
+            dt_naive = datetime.datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+            dt_orig = orig_tz.localize(dt_naive)
+            dt_target = dt_orig.astimezone(tgt_tz)
+            return dt_target.strftime(output_format)
+        except ValueError as e:
+            return time_str
+    
+    return re.sub(pattern, replace_match, log_content)

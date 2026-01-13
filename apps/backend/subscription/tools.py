@@ -947,7 +947,8 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                 ]
             )
             bk_host_id_chunks = chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500)
-            params_list = [{"bk_host_id": chunk, "bk_biz_id": bk_biz_id} for chunk in bk_host_id_chunks]
+            params_list = [{"params": {"bk_host_id": chunk, "bk_biz_id": bk_biz_id}} for chunk in bk_host_id_chunks]
+
             host_biz_relations = batch_call(
                 func=CCApi.find_host_biz_relations, params_list=params_list, extend_result=True
             )

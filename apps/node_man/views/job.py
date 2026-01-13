@@ -276,7 +276,8 @@ class JobViewSet(ModelViewSet):
         """
         job_id = kwargs["pk"]
         JobTools.isolate_tenant_job(job_id)
-        return Response(JobHandler(job_id).get_log(request.query_params["instance_id"]))
+        user_timezone = get_user_timezone(request)
+        return Response(JobHandler(job_id).get_log(request.query_params["instance_id"], user_timezone))
 
     @swagger_auto_schema(
         operation_summary="查询日志",

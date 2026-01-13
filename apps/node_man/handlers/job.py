@@ -37,7 +37,7 @@ from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, to_int_or_default
 from apps.utils.local import get_request_username, get_tenant_id
-from apps.utils.time_tools import local_dt_str2utc_dt
+from apps.utils.time_tools import format_log_time, local_dt_str2utc_dt
 from common.api import NodeApi
 from common.api.exception import DataAPIException
 
@@ -910,7 +910,7 @@ class JobHandler(APIModel):
         return job_detail
 
     @staticmethod
-    def get_log_base(subscription_id: int, task_id_list: List[int], instance_id: str) -> list:
+    def get_log_base(subscription_id: int, task_id_list: List[int], instance_id: str, user_timezone) -> list:
         """
         根据订阅任务ID，实例ID，获取日志
         :param subscription_id: 订阅任务ID
@@ -928,21 +928,21 @@ class JobHandler(APIModel):
                         {
                             "step": step["node_name"],
                             "status": step["status"],
-                            "log": step["log"],
-                            "start_time": step.get("start_time"),
-                            "finish_time": step.get("finish_time"),
+                            "log": format_log_time(step["log"], target_timezone=user_timezone),
+                            "start_time": format_log_time(step.get("start_time"), target_timezone=user_timezone),
+                            "finish_time": format_log_time(step.get("finish_time"), target_timezone=user_timezone),
                         }
                     )
         return logs
 
-    def get_log(self, instance_id: str) -> list:
+    def get_log(self, instance_id: str, user_timezone) -> list:
         """
         获得日志
         :param instance_id: 实例ID
         :return: 日志列表
         """
         # 获得并返回日志
-        return JobHandler.get_log_base(self.data.subscription_id, self.data.task_id_list, instance_id)
+        return JobHandler.get_log_base(self.data.subscription_id, self.data.task_id_list, instance_id, user_timezone)
 
     def collect_log(self, instance_id: int) -> list:
         return NodeApi.collect_subscription_task_detail({"job_id": self.job_id, "instance_id": instance_id})
