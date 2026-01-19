@@ -20,9 +20,7 @@ router = routers.DefaultRouter(trailing_slash=True)
 router.register(
     encrypt_views.RSAViewSet.URL_BASE_NAME, encrypt_views.RSAViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
 )
-router.register(
-    tag_views.TagViewSet.URL_BASE_NAME, tag_views.TagViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
-)
+router.register(tag_views.TagViewSet.URL_BASE_NAME, tag_views.TagViewSet, basename=tag_views.TagViewSet.URL_BASE_NAME)
 router.register(
     tag_views.TagChangeRecordViewSet.URL_BASE_NAME,
     tag_views.TagChangeRecordViewSet,
