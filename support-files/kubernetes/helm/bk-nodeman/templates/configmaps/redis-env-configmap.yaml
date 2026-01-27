@@ -24,6 +24,7 @@ data:
   REDIS_MASTER_NAME: "{{ .Values.externalRedis.master_name }}"
   REDIS_SENTINEL_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_SENTINEL_PORT: "{{ .Values.externalRedis.port | default 26379 }}"
+  REDIS_SENTINEL_PASSWORD: "{{ .Values.externalRedis.sentinel_password }}"
   {{- else }}
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port | default 6379 }}"
