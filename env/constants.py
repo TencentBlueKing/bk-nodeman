@@ -60,3 +60,12 @@ class CacheBackend(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DB: "MySQL", cls.REDIS: "Redis（如果 Redis 未配置，使用 MySQL）"}
+
+
+class CeleryBackend(EnhanceEnum):
+    REDIS = "redis"
+    RABBITMQ = "rabbitmq"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.REDIS: "Redis", cls.RABBITMQ: "RabbitMQ"}
