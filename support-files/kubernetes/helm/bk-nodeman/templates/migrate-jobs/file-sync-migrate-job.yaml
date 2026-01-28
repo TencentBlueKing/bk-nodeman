@@ -34,7 +34,11 @@ spec:
           args:
             - |
               echo Start check database: $(MYSQL_HOST):$(MYSQL_PORT); until telnet $(MYSQL_HOST) $(MYSQL_PORT); do echo waiting for db $(MYSQL_HOST):$(MYSQL_PORT); sleep 2; done;
+              {{- if eq .Values.externalRedis.architecture "replication" }}
+              echo Start check redis: $(REDIS_SENTINEL_HOST):$(REDIS_SENTINEL_PORT); until telnet $(REDIS_SENTINEL_HOST) $(REDIS_SENTINEL_PORT); do echo waiting for redis $(REDIS_SENTINEL_HOST):$(REDIS_SENTINEL_PORT); sleep 2; done;
+              {{- else }}
               echo Start check redis: $(REDIS_HOST):$(REDIS_PORT); until telnet $(REDIS_HOST) $(REDIS_PORT); do echo waiting for redis $(REDIS_HOST):$(REDIS_PORT); sleep 2; done;
+              {{- end }}
               echo Start check rabbitmq: $(RABBITMQ_HOST):$(RABBITMQ_PORT); until telnet $(RABBITMQ_HOST) $(RABBITMQ_PORT); do echo waiting for rabbitmq $(RABBITMQ_HOST):$(RABBITMQ_PORT); sleep 2; done;
           {{- include "bk-nodeman.backend.env" . | nindent 10 }}
           resources:
