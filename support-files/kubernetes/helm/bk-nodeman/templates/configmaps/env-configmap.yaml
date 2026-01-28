@@ -31,6 +31,8 @@ data:
   CACHE_BACKEND: "{{ .Values.config.cacheBackend }}"
   CACHE_ENABLE_PREHEAT: "{{ .Values.config.cacheEnablePreheat }}"
 
+  CELERY_BACKEND: "{{ .Values.config.celeryBackend }}"
+
   BK_CMDB_RESOURCE_POOL_BIZ_ID: "{{ .Values.config.bkCmdbResourcePoolBizId }}"
   DEFAULT_SUPPLIER_ACCOUNT: "{{ .Values.config.defaultSupplierAccount }}"
 

@@ -30,8 +30,8 @@ def get_client_through_sentinel():
         kwargs["sentinel_kwargs"]["password"] = sentinel_pwd
     if "password" in settings.REDIS:
         kwargs["password"] = settings.REDIS["password"]
-    host = settings.REDIS["host"]
-    port = settings.REDIS["port"]
+    host = settings.REDIS["sentinel_host"]
+    port = settings.REDIS["sentinel_port"]
     sentinels = list(
         zip(
             [h.strip() for h in host.split(",")],

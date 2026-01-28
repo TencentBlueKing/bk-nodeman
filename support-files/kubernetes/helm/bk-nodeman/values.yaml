@@ -334,6 +334,9 @@ config:
   ## 是否预热关键缓存，一般在切换缓存前需要开启
   cacheEnablePreheat: false
 
+  ## Celery 后端，默认值为 `rabbitmq`，可选项：`redis`、`rabbitmq`
+  celeryBackend: "rabbitmq"
+
   ## 蓝鲸配置平台
   ##
   ## 资源池 ID

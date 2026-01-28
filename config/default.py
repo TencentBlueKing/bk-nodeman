@@ -232,6 +232,92 @@ if SENTRY_DSN:
     }
 
 # ==============================================================================
+#  REDIS相关配置
+# ==============================================================================
+
+
+class ConfigRedisMode(EnhanceEnum):
+    """
+    后台配置的Redis模式
+    背景：脱离PaaS的后台部署，运维提供的Redis模式切换控制变量
+    """
+
+    STANDALONE = "standalone"
+    SENTINEL = "sentinel"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.STANDALONE: "单例模式", cls.SENTINEL: "哨兵模式"}
+
+
+class RedisMode(EnhanceEnum):
+    """标准Redis模式"""
+
+    SINGLE = "single"
+    REPLICATION = "replication"
+    CLUSTER = "cluster"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.SINGLE: "单例模式", cls.REPLICATION: "主从模式", cls.CLUSTER: "集群模式"}
+
+    @classmethod
+    def get_config_mode__redis_mode_map(cls):
+        """获取配置Redis模式 - 标准Redis模式映射"""
+        return {
+            ConfigRedisMode.SENTINEL.value: cls.REPLICATION.value,
+            ConfigRedisMode.STANDALONE.value: cls.SINGLE.value,
+        }
+
+    @classmethod
+    def get_standard_redis_mode(cls, config_redis_mode: str, default: Optional[str] = None) -> Optional[str]:
+        return cls.get_config_mode__redis_mode_map().get(config_redis_mode, default)
+
+
+CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
+REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
+
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT") or 6379
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
+REDIS_SENTINEL_HOST = os.getenv("REDIS_SENTINEL_HOST")
+REDIS_SENTINEL_PORT = os.getenv("REDIS_SENTINEL_PORT") or 26379
+REDIS_SENTINEL_PASSWORD = os.getenv("REDIS_SENTINEL_PASSWORD")
+
+REDIS = {
+    "host": REDIS_HOST,
+    "port": REDIS_PORT,
+    "password": REDIS_PASSWORD,
+    "service_name": REDIS_MASTER_NAME,
+    "sentinel_host": REDIS_SENTINEL_HOST,
+    "sentinel_port": REDIS_SENTINEL_PORT,
+    "sentinel_password": REDIS_SENTINEL_PASSWORD,
+    "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication,
+}
+
+DJANGO_REDIS_CONNECTION_FACTORY = (
+    "apps.utils.cache.SentinelConnectionFactory"
+    if REDIS_MODE == RedisMode.REPLICATION.value
+    else "apps.utils.cache.ConnectionFactory"
+)
+DJANGO_REDIS_COMMON_OPTIONS = {
+    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+    "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
+    "SERIALIZER": "apps.utils.cache.JSONSerializer",
+}
+
+# ==============================================================================
+#  RABBITMQ相关配置
+# ==============================================================================
+
+RABBITMQ_USER = os.getenv("RABBITMQ_USER")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
+RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", 5672)
+RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST") or "bk_bknodeman"
+
+# ==============================================================================
 # CELERY相关配置
 # 参考：https://docs.celeryproject.org/en/stable/userguide/configuration.html
 # ==============================================================================
@@ -265,13 +351,7 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope",
 )
 
-BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
-    user=os.getenv("RABBITMQ_USER"),
-    passwd=os.getenv("RABBITMQ_PASSWORD"),
-    host=os.getenv("RABBITMQ_HOST"),
-    port=os.getenv("RABBITMQ_PORT"),
-    vhost=os.getenv("RABBITMQ_VHOST") or "bk_bknodeman",
-)
+BK_NODEMAN_CELERY_BACKEND = env.CELERY_BACKEND
 
 # celery settings
 if IS_USE_CELERY:
@@ -279,10 +359,21 @@ if IS_USE_CELERY:
     INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
     CELERY_ENABLE_UTC = False
     CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
     CELERY_RESULT_PERSISTENT = True
-    # celery3 的配置，升级后先行注释，待确认无用后废弃
-    # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
+    CELERY_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
+
+    if BK_NODEMAN_CELERY_BACKEND == env.constants.CeleryBackend.REDIS.value:
+        if REDIS_MODE == RedisMode.REPLICATION.value:
+            CELERY_RESULT_BACKEND = f"sentinel://:{REDIS_PASSWORD}@{REDIS_SENTINEL_HOST}:{REDIS_SENTINEL_PORT}/0"
+            CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+                "service_name": REDIS_MASTER_NAME,
+                "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+            }
+        else:
+            CELERY_RESULT_BACKEND = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    else:
+        # amqp is deprecated, use rpc instead
+        CELERY_RESULT_BACKEND = "rpc://"
 
 CELERY_ROUTES = {
     "apps.backend.subscription.tasks.*": {"queue": "backend"},
@@ -303,6 +394,26 @@ if "celery" in sys.argv:
     IS_CELERY = True
     if "beat" in sys.argv:
         IS_CELERY_BEAT = True
+
+
+# ==============================================================================
+# CELERY REDBEAT相关配置
+# ==============================================================================
+
+if REDIS_MODE == RedisMode.REPLICATION.value:
+    # redis 集群sentinel模式
+    REDBEAT_REDIS_URL = f"redis-sentinel://redis-sentinel:{REDIS_SENTINEL_PORT}/0"
+    REDBEAT_REDIS_OPTIONS = {
+        "sentinels": [(REDIS_SENTINEL_HOST, REDIS_SENTINEL_PORT)],
+        "password": REDIS_PASSWORD,
+        "service_name": REDIS_MASTER_NAME,
+        "socket_timeout": 0.1,
+        "retry_period": 60,
+        "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+    }
+else:
+    REDBEAT_REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+
 # ===============================================================================
 # 项目配置
 # ===============================================================================
@@ -602,45 +713,6 @@ BACKEND_UNIX_ACCOUNT = os.getenv("BKAPP_BACKEND_UNIX_ACCOUNT", "root")
 以下为框架代码 请勿修改
 """
 
-
-class ConfigRedisMode(EnhanceEnum):
-    """
-    后台配置的Redis模式
-    背景：脱离PaaS的后台部署，运维提供的Redis模式切换控制变量
-    """
-
-    STANDALONE = "standalone"
-    SENTINEL = "sentinel"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.STANDALONE: "单例模式", cls.SENTINEL: "哨兵模式"}
-
-
-class RedisMode(EnhanceEnum):
-    """标准Redis模式"""
-
-    SINGLE = "single"
-    REPLICATION = "replication"
-    CLUSTER = "cluster"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.SINGLE: "单例模式", cls.REPLICATION: "主从模式", cls.CLUSTER: "集群模式"}
-
-    @classmethod
-    def get_config_mode__redis_mode_map(cls):
-        """获取配置Redis模式 - 标准Redis模式映射"""
-        return {
-            ConfigRedisMode.SENTINEL.value: cls.REPLICATION.value,
-            ConfigRedisMode.STANDALONE.value: cls.SINGLE.value,
-        }
-
-    @classmethod
-    def get_standard_redis_mode(cls, config_redis_mode: str, default: Optional[str] = None) -> Optional[str]:
-        return cls.get_config_mode__redis_mode_map().get(config_redis_mode, default)
-
-
 # ==============================================================================
 # Cache
 # ==============================================================================
@@ -656,71 +728,28 @@ CACHES.update(
 
 CACHE_KEY_TMPL = APP_CODE + ":scope:{scope}:body:{body}"
 
-CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
-REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
-
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME")
-REDIS_SENTINEL_PASSWORD = os.getenv("REDIS_SENTINEL_PASSWORD")
-
-DJANGO_REDIS_COMMON_OPTIONS = {
-    "CLIENT_CLASS": "django_redis.client.DefaultClient",
-    "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
-    "SERIALIZER": "apps.utils.cache.JSONSerializer",
-}
-
-if REDIS_MODE == "replication":
-    # redis 集群sentinel模式
-    REDIS_HOST = os.getenv("REDIS_SENTINEL_HOST")
-    REDIS_PORT = os.getenv("REDIS_SENTINEL_PORT")
-    # # celery redbeat config
-    REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
-    REDBEAT_REDIS_OPTIONS = {
-        "sentinels": [(REDIS_HOST, REDIS_PORT)],
-        "password": REDIS_PASSWORD,
-        "service_name": REDIS_MASTER_NAME or "mymaster",
-        "socket_timeout": 0.1,
-        "retry_period": 60,
-        "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
-    }
-    DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.SentinelConnectionFactory"
+if REDIS_MODE == RedisMode.REPLICATION.value:
     CACHES["redis"] = {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDBEAT_REDIS_OPTIONS['service_name']}:{REDIS_PORT}/0",
+        "LOCATION": f"redis://{REDIS_MASTER_NAME}:{REDIS_SENTINEL_PORT}/0",
         "KEY_PREFIX": "nodeman",
         "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
         "OPTIONS": {
             "PASSWORD": REDIS_PASSWORD,
-            "SENTINELS": REDBEAT_REDIS_OPTIONS["sentinels"],
-            "SENTINEL_KWARGS": REDBEAT_REDIS_OPTIONS["sentinel_kwargs"],
+            "SENTINELS": [(REDIS_SENTINEL_HOST, REDIS_SENTINEL_PORT)],
+            "SENTINEL_KWARGS": {"password": REDIS_SENTINEL_PASSWORD},
             "CONNECTION_POOL_CLASS": "redis.sentinel.SentinelConnectionPool",
             **DJANGO_REDIS_COMMON_OPTIONS,
         },
     }
 else:
-    REDIS_HOST = os.getenv("REDIS_HOST")
-    REDIS_PORT = os.getenv("REDIS_PORT")
-    # # celery redbeat config
-    REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
-        passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
-    )
-    DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.ConnectionFactory"
     CACHES["redis"] = {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDBEAT_REDIS_URL,
+        "LOCATION": f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
         "KEY_PREFIX": "nodeman",
         "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
         "OPTIONS": {**DJANGO_REDIS_COMMON_OPTIONS},
     }
-
-REDIS = {
-    "host": REDIS_HOST,
-    "port": REDIS_PORT,
-    "password": REDIS_PASSWORD,
-    "service_name": REDIS_MASTER_NAME,
-    "sentinel_password": REDIS_SENTINEL_PASSWORD,
-    "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
-}
 
 CACHE_BACKEND = env.CACHE_BACKEND
 CACHE_ENABLE_PREHEAT = env.CACHE_ENABLE_PREHEAT
@@ -765,7 +794,17 @@ if BK_BACKEND_CONFIG:
         )
 
     # BROKER_URL
-    BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
+    if BK_NODEMAN_CELERY_BACKEND == env.constants.CeleryBackend.REDIS.value:
+        if REDIS_MODE == RedisMode.REPLICATION.value:
+            BROKER_URL = f"sentinel://:{REDIS_PASSWORD}@{REDIS_SENTINEL_HOST}:{REDIS_SENTINEL_PORT}/0"
+            BROKER_TRANSPORT_OPTIONS = {
+                "master_name": REDIS_MASTER_NAME,
+                "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+            }
+        else:
+            BROKER_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    else:
+        BROKER_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}"
 
     REDBEAT_KEY_PREFIX = "nodeman"
 

@@ -73,6 +73,8 @@ __all__ = [
     "TXY_ENDPOINT",
     # 当前环境为仅GSE2环境
     "BKAPP_IS_PURE_GSE2_VERSION",
+    # CELERY 配置
+    "CELERY_BACKEND",
 ]
 
 # ===============================================================================
@@ -119,6 +121,11 @@ BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _typ
 CACHE_BACKEND = get_type_env(key="CACHE_BACKEND", default=constants.CacheBackend.DB.value, _type=str)
 # 是否预热关键缓存，一般在切换缓存前需要开启，开启前请确保 SaaS 模块也配置了 Redis
 CACHE_ENABLE_PREHEAT = get_type_env(key="CACHE_ENABLE_PREHEAT", default=False, _type=bool)
+
+# ===============================================================================
+# CELERY 配置
+# ===============================================================================
+CELERY_BACKEND = get_type_env(key="CELERY_BACKEND", default=constants.CeleryBackend.RABBITMQ.value, _type=str)
 
 # ===============================================================================
 # 蓝鲸管控平台
