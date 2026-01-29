@@ -549,7 +549,7 @@ class AddOrUpdateHostsService(AgentBaseService):
             host_objs_to_be_updated,
             fields=["bk_biz_id", "bk_cloud_id", "bk_addressing", "os_type", "node_type"]
             + ["inner_ip", "inner_ipv6", "outer_ip", "outer_ipv6", "login_ip", "data_ip"]
-            + ["is_manual", "ap_id", "install_channel_id", "upstream_nodes", "updated_at", "extra_data"],
+            + ["is_manual", "ap_id", "install_channel_id", "upstream_nodes", "updated_at", "extra_data", "tenant_id"],
             batch_size=self.batch_size,
         )
         models.ProcessStatus.objects.bulk_create(proc_status_objs_to_be_created, batch_size=self.batch_size)
