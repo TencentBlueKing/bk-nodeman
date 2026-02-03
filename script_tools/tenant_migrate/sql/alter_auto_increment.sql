@@ -1,0 +1,10 @@
+ALTER TABLE node_man_packages AUTO_INCREMENT = 10000;
+ALTER TABLE node_man_pluginconfiginstance AUTO_INCREMENT = 10000;
+ALTER TABLE node_man_pluginconfigtemplate AUTO_INCREMENT = 100000;
+ALTER TABLE node_man_pluginconfigtemplate AUTO_INCREMENT = 1000;
+ALTER TABLE node_man_proccontrol AUTO_INCREMENT = 10000;
+ALTER TABLE node_man_processstatus AUTO_INCREMENT = 5000000;
+ALTER TABLE node_man_subscription AUTO_INCREMENT = 350000;
+ALTER TABLE node_man_subscriptioninstancerecord AUTO_INCREMENT = 3500000;
+ALTER TABLE node_man_subscriptionstep AUTO_INCREMENT = 350000;
+ALTER TABLE node_man_subscriptiontask AUTO_INCREMENT = 350000;
