@@ -195,7 +195,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         ap = ap_id_obj_map.get(host.ap_id)
         if not ap:
             raise exceptions.ApIDNotExistsError()
-        agent_config = ap.agent_config.get(host.os_type.lower()) or ap.agent_config["linux"]
+        agent_config = ap.get_agent_config(host.os_type)
         return agent_config
 
     def get_package_by_process_status(
@@ -396,12 +396,7 @@ class InitProcessStatusService(PluginBaseService):
         """获取接入点配置"""
         ap = ap_id_obj_map.get(host.ap_id)
         os_type = host.os_type.lower()
-        if os_type != constants.OsType.WINDOWS.lower():
-            ap_config: Optional[Dict[str, Any]] = ap.agent_config.get(os_type) or ap.agent_config.get(
-                constants.OsType.LINUX.lower()
-            )
-        else:
-            ap_config: Optional[Dict[str, Any]] = ap.agent_config.get(os_type)
+        ap_config: Optional[Dict[str, Any]] = ap.get_agent_config(os_type)
         if not ap_config:
             raise exceptions.ApNotSupportOsError(ap_id=ap.id, os_type=os_type)
         return ap_config

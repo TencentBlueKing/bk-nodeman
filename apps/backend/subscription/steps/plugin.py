@@ -265,7 +265,7 @@ class PluginStep(Step):
                 ap = ap_id_obj_map.get(target_host.ap_id)
                 if not ap:
                     raise ApIDNotExistsError()
-                agent_config = ap.agent_config[target_host.os_type.lower()]
+                agent_config = ap.get_agent_config(target_host.os_type)
                 context = tools.get_all_subscription_steps_context(
                     subscription_step,
                     instance_info,
