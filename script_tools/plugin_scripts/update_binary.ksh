@@ -114,6 +114,7 @@ else
     export PLUGIN_TMP_DIR=external_plugins
 fi
 cp -R -f  ${PLUGIN_TMP_DIR} $GSE_HOME
+rm -R -f ${PLUGIN_TMP_DIR} # 避免遗留的临时文件夹在后续安装新的插件时覆盖现有插件文件
 
 ret=$?
 
