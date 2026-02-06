@@ -94,7 +94,9 @@ class PluginV2Tools:
                 name__in=projects,
                 source_type=models.ProcessStatus.SourceType.DEFAULT,
                 is_latest=True,
-            ).values("bk_host_id", "name", "version")
+            )
+            .exclude(status=constants.ProcStateType.UNREGISTER)
+            .values("bk_host_id", "name", "version")
         )
 
         # proc_list有重复的情况会在此步骤构建映射时自动去重
