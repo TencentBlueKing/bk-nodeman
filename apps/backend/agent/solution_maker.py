@@ -309,18 +309,24 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         if not self.agent_setup_info.is_legacy:
             run_cmd_params.extend([f"-n {self.agent_setup_info.name}", f"-t {self.agent_setup_info.version}"])
 
+        # 仅非 root 无免密 sudo 用户安装时附带
+        custom_vars: list[str] = []
+        if not self.host_ap.is_use_sudo and self.host.os_type != constants.OsType.WINDOWS:
+            run_dir = f'GSE_AGENT_RUN_DIR={self.agent_config["run_path"]}'
+            data_dir = f'GSE_AGENT_DATA_DIR={self.agent_config["data_path"]}'
+            log_dir = f'GSE_AGENT_LOG_DIR={self.agent_config["log_path"]}'
+            custom_vars.extend([run_dir, data_dir, log_dir])
+
         # 因 bat 脚本逻辑，-R 参数只能放在最后一位
         if self.is_uninstall:
             run_cmd_params.extend(["-R"])
         if not self.agent_setup_info.is_legacy and self.agent_setup_info.force_update_agent_id:
             run_cmd_params.extend(["-F"])
 
-        # 因 shell 脚本读取 VARS_LIST 逻辑会忽略后续的参数故将其放置在最后, 仅非 root 无免密 sudo 用户安装时附带
-        if not self.host_ap.is_use_sudo and self.host.os_type != constants.OsType.WINDOWS:
-            run_dir = f'GSE_AGENT_RUN_DIR={self.agent_config["run_path"]}'
-            data_dir = f'GSE_AGENT_DATA_DIR={self.agent_config["data_path"]}'
-            log_dir = f'GSE_AGENT_LOG_DIR={self.agent_config["log_path"]}'
-            run_cmd_params.append(f"-v {run_dir} {data_dir} {log_dir}")
+        # 因 shell 脚本读取 VARS_LIST 逻辑会忽略后续的参数故将其放置在最后面，且仅非 Windows 机器使用
+        if custom_vars and self.host.os_type != constants.OsType.WINDOWS:
+            vars_string = " ".join(custom_vars)
+            run_cmd_params.append(f'-v "{vars_string}"')
 
         return list(filter(None, run_cmd_params))
 
