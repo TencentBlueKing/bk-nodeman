@@ -1226,14 +1226,25 @@ class CmdbCpuArchType(EnhanceEnum):
     X86 = "x86"
     X86_64 = "x86"
     ARM = "arm"
+    POWERPC = "x86"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.X86: _("CPU架构:x86"), cls.X86_64: _("CPU架构:x86_64"), cls.ARM: _("CPU架构:arm")}
+        return {
+            cls.X86: _("CPU架构:x86"),
+            cls.X86_64: _("CPU架构:x86_64"),
+            cls.ARM: _("CPU架构:arm"),
+            cls.POWERPC: _("CPU架构:powerpc"),
+        }
 
     @classmethod
     def cpu_type__arch_map(cls):
-        return {CpuType.x86: cls.X86.value, CpuType.x86_64: cls.X86_64.value, CpuType.aarch64: cls.ARM.value}
+        return {
+            CpuType.x86: cls.X86.value,
+            CpuType.x86_64: cls.X86_64.value,
+            CpuType.aarch64: cls.ARM.value,
+            CpuType.powerpc: cls.POWERPC.value,
+        }
 
 
 class OsBitType(EnhanceEnum):
@@ -1247,7 +1258,12 @@ class OsBitType(EnhanceEnum):
 
     @classmethod
     def cpu_type__os_bit_map(cls):
-        return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+        return {
+            CpuType.x86: cls.BIT32.value,
+            CpuType.x86_64: cls.BIT64.value,
+            CpuType.aarch64: cls.ARM.value,
+            CpuType.powerpc: cls.BIT64.value,
+        }
 
 
 ########################################################################################################
