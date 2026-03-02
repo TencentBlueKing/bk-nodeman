@@ -4356,10 +4356,8 @@ msgstr "IP"
 
 #: apps/node_man/handlers/meta.py:157 apps/node_man/handlers/meta.py:208
 #: apps/node_man/handlers/meta.py:431 apps/node_man/handlers/meta.py:445
-#, fuzzy
-#| msgid "管控区域ID"
 msgid "管控区域ID:IP"
-msgstr "BK-Net ID"
+msgstr "BK-Net ID:IP"
 
 #: apps/node_man/handlers/meta.py:183
 msgid "手动"
@@ -5887,10 +5885,8 @@ msgid "只返回IP"
 msgstr "Only return IP"
 
 #: apps/node_man/serializers/base.py:99
-#, fuzzy
-#| msgid "管控区域ID"
 msgid "只返回管控区域:IP"
-msgstr "BK-Net ID"
+msgstr "Only return BK-Net:IP"
 
 #: apps/node_man/serializers/base.py:101
 msgid "仅返回的字段"

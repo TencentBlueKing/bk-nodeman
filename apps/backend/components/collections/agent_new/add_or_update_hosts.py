@@ -465,7 +465,7 @@ class AddOrUpdateHostsService(AgentBaseService):
             else:
                 # 初次创建主机时，初始化CPU架构，根据操作系统设置默认值，后续通过安装上报日志修正
                 host_obj.cpu_arch = (constants.CpuType.x86_64, constants.CpuType.powerpc)[
-                    host_obj.cpu_arch == constants.OsType.AIX
+                    host_obj.os_type == constants.OsType.AIX
                 ]
                 host_objs_to_be_created.append(host_obj)
 
