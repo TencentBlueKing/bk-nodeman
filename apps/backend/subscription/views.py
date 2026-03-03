@@ -329,7 +329,8 @@ class SubscriptionViewSet(APIViewSet):
         """
         params = self.validated_data
         subscription_id_list = params["subscription_id_list"]
-        return Response(SubscriptionHandler.statistic(subscription_id_list))
+        from_cache = params["from_cache"]
+        return Response(SubscriptionHandler.statistic(subscription_id_list, from_cache))
 
     @swagger_auto_schema(
         operation_summary="查询订阅运行状态",

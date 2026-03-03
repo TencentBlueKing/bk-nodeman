@@ -273,6 +273,7 @@ class FetchCommandsSerializer(serializers.Serializer):
 
 class SubscriptionStatisticSerializer(serializers.Serializer):
     subscription_id_list = serializers.ListField()
+    from_cache = serializers.BooleanField(default=True)
 
     def validate(self, attrs):
         attrs["subscription_id_list"] = list(set(attrs["subscription_id_list"]))
