@@ -480,31 +480,37 @@ class SubscriptionHandler(object):
         return {"task_id": subscription_task.id, "subscription_id": subscription.id}
 
     @staticmethod
-    def statistic(subscription_id_list: List[int]) -> List[Dict]:
+    def statistic(subscription_id_list: List[int], from_cache: bool = True) -> List[Dict]:
         """
         订阅任务状态统计
         :param subscription_id_list:
+        :param from_cache: 是否从缓存中获取
         :return:
         """
 
-        cache_keys: List[str] = []
+        need_statistic_sub_ids: Set[int] = set(subscription_id_list)
+        hit_sub_statistic_list: List[Dict] = []
         cache_key_tmpl = settings.CACHE_KEY_TMPL.format(scope="subscription:statistic", body="sub_id:{sub_id}")
-        for subscription_id in subscription_id_list:
-            cache_keys.append(cache_key_tmpl.format(sub_id=subscription_id))
+        if from_cache:
+            cache_keys: List[str] = []
+            for subscription_id in subscription_id_list:
+                cache_keys.append(cache_key_tmpl.format(sub_id=subscription_id))
 
-        # 尝试从缓存中获取统计结果
-        hit_sub_statistic_list: List[Dict] = list(cache.get_many(cache_keys).values())
-        hit_sub_ids: Set[int] = {hit_sub_statistic["subscription_id"] for hit_sub_statistic in hit_sub_statistic_list}
+            # 尝试从缓存中获取统计结果
+            hit_sub_statistic_list = list(cache.get_many(cache_keys).values())
+            hit_sub_ids: Set[int] = {
+                hit_sub_statistic["subscription_id"] for hit_sub_statistic in hit_sub_statistic_list
+            }
 
-        logger.info(f"cache_keys -> {cache_keys}, hit_sub_ids -> {hit_sub_ids}")
+            logger.info(f"cache_keys -> {cache_keys}, hit_sub_ids -> {hit_sub_ids}")
 
-        miss_sub_ids: Set[int] = set(subscription_id_list) - hit_sub_ids
-        if not miss_sub_ids:
-            logger.info("All cache hits, return the result directly")
-            return hit_sub_statistic_list
+            need_statistic_sub_ids: Set[int] = set(subscription_id_list) - hit_sub_ids
+            if not need_statistic_sub_ids:
+                logger.info("All cache hits, return the result directly")
+                return hit_sub_statistic_list
 
-        logger.info(f"miss_sub_ids -> {miss_sub_ids}")
-        subscriptions = models.Subscription.objects.filter(id__in=miss_sub_ids)
+        logger.info(f"need_statistic_sub_ids -> {need_statistic_sub_ids}")
+        subscriptions = models.Subscription.objects.filter(id__in=need_statistic_sub_ids)
 
         host_statuses = models.ProcessStatus.objects.filter(
             source_id__in=subscription_id_list, source_type=models.ProcessStatus.SourceType.SUBSCRIPTION
