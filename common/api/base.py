@@ -498,6 +498,7 @@ class DataAPI(object):
         api_auth_params: dict = fetch_and_clean_auth_info(params, url)
         session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
         session.headers.update({"X-Bk-Tenant-Id": get_tenant_id()})
+        logger.info(f"request url => {url}, method => {self.method}, params => {params}, headers => {session.headers}")
 
         # 发出请求并返回结果
         non_file_data, file_data = self._split_file_data(params)
