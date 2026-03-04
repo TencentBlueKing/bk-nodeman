@@ -108,10 +108,10 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
                 if str(e.code) in ["250107", "251012"]:
                     raise ObjectAlreadyExists(e.message, e.code, e.response) from e
                 logger.exception("Request success, but the server rejects the upload request.")
-                raise UploadFailedError(key=key, src=src) from e
+                # raise UploadFailedError(key=key, src=src) from e
             except Exception as e:
                 logger.exception("An unexpected exception occurred, detail: %s", e)
-                raise UploadFailedError(key=key, src=src) from e
+                # raise UploadFailedError(key=key, src=src) from e
 
         def get_file_metadata(self, key: str, *args, **kwargs) -> Dict:
             """具体返回值请看 bk-repo 的文档."""
