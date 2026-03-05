@@ -321,6 +321,8 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
     @staticmethod
     def get_biz_set_id():
+        # TODO 临时使用返回1，后续需要根据业务场景进行修改
+        return 1
         resp = CCApi.list_business_set(
             {"no_request": True}, tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default"
         )
