@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import six
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
@@ -141,14 +142,23 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             job_params["os_type"] = self.DEFAULT_OS_TYPE
         os_type = job_params["os_type"]
 
-        account_set: set = set()
-        for host in job_params["target_server"][host_interaction_from]:
-            target_host = (
-                models.Host.objects.get(inner_ip=host["ip"], bk_cloud_id=host["bk_cloud_id"])
-                if host_interaction_from == "ip_list"
-                else models.Host.objects.get(bk_host_id=host)
-            )
-            account_set.add(target_host.identity.account)
+        # 批量查询目标主机
+        if host_interaction_from == "ip_list":
+            host_queries = Q()
+            for host in host_interaction_data_list:
+                host_queries |= Q(inner_ip=host["ip"], bk_cloud_id=host["bk_cloud_id"])
+            target_hosts = list(models.Host.objects.filter(host_queries))
+        else:
+            target_hosts = list(models.Host.objects.filter(bk_host_id__in=host_interaction_data_list))
+
+        account_set: Set[str] = set()
+        for host in target_hosts:
+            if host.os_type == constants.OsType.WINDOWS:
+                account_set.add(settings.BACKEND_WINDOWS_ACCOUNT)
+            elif host.ap.is_use_sudo:
+                account_set.add(settings.BACKEND_UNIX_ACCOUNT)
+            else:
+                account_set.add(host.identity.account)
 
         # 每个host对应的identitydata都会存在一个account
         # 即使从CMDB同步来的主机也会有默认的root或Administrator账户

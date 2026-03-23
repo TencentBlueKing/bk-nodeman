@@ -1212,6 +1212,14 @@ class GseOperateProcService(PluginBaseService):
             # 优先使用instance_info里的最新的Agent-ID，host里的Agent-ID可能为旧的
             bk_agent_id: str = subscription_instance.instance_info["host"].get("bk_agent_id") or host.bk_agent_id
 
+            account: str = ""
+            if host.os_type == constants.OsType.WINDOWS:
+                account = settings.BACKEND_WINDOWS_ACCOUNT
+            elif host.ap.is_use_sudo:
+                account = settings.BACKEND_UNIX_ACCOUNT
+            else:
+                account = host.identity.account
+
             gse_op_params = {
                 "meta": {"namespace": constants.GSE_NAMESPACE, "name": meta_name},
                 "op_type": op_type,
@@ -1228,12 +1236,7 @@ class GseOperateProcService(PluginBaseService):
                         "proc_name": package_control.process_name or plugin.name,
                         "setup_path": process_status.setup_path,
                         "pid_path": process_status.pid_path,
-                        "user": (
-                            operate_user
-                            or (host.identity.account, settings.BACKEND_WINDOWS_ACCOUNT)[
-                                host.os_type == constants.OsType.WINDOWS
-                            ]
-                        ),
+                        "user": operate_user or account,
                     },
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],
