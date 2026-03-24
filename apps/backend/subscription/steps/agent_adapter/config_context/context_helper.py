@@ -88,10 +88,22 @@ class ConfigContextHelper:
             # Agent 配置中 file data 的 endpoint 链接 proxy（可以是同台（自身）或同管控区域内其他 proxy 的 file data）
             file_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
             data_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
+            io_port = self.ap.port_config.get("upstream_io_port") or self.ap.port_config["io_port"]
+            data_port = self.ap.port_config.get("upstream_data_port") or self.ap.port_config["data_port"]
+            file_svr_port = self.ap.port_config.get("upstream_file_svr_port") or self.ap.port_config["file_svr_port"] 
+            upstream_port=self.ap.port_config.get("upstream_file_topology_bind_port") or self.ap.port_config.get(
+                "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
+            )
         else:
             # 其他情况取实际上游
             file_hosts_for_agent: typing.List[str] = gse_servers_info["bt_file_server_hosts"]
             data_hosts_for_agent: typing.List[str] = gse_servers_info["data_server_hosts"]
+            io_port = self.ap.port_config["io_port"]
+            data_port = self.ap.port_config["data_port"]
+            file_svr_port = self.ap.port_config["file_svr_port"]
+            upstream_port= self.ap.port_config.get(
+                "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
+            )
 
         contexts: typing.List[context_dataclass.GseConfigContext] = [
             context_dataclass.AgentConfigContext(
@@ -117,15 +129,15 @@ class ConfigContextHelper:
             context_dataclass.AccessConfigContext(
                 cluster_endpoints=",".join(
                     [
-                        f"{cluster_host}:{self.ap.port_config['io_port']}"
+                        f"{cluster_host}:{io_port}"
                         for cluster_host in gse_servers_info["task_server_hosts"]
                     ]
                 ),
                 data_endpoints=",".join(
-                    [f"{data_host}:{self.ap.port_config['data_port']}" for data_host in data_hosts_for_agent]
+                    [f"{data_host}:{data_port}" for data_host in data_hosts_for_agent]
                 ),
                 file_endpoints=",".join(
-                    [f"{file_host}:{self.ap.port_config['file_svr_port']}" for file_host in file_hosts_for_agent]
+                    [f"{file_host}:{file_svr_port}" for file_host in file_hosts_for_agent]
                 ),
             ),
             context_dataclass.AgentBaseConfigContext(
@@ -166,7 +178,7 @@ class ConfigContextHelper:
             context_dataclass.DataProxyConfigContext(
                 endpoints=",".join(
                     [
-                        f"{data_host}:{self.ap.port_config['data_port']}"
+                        f"{data_host}:{data_port}"
                         for data_host in gse_servers_info["data_server_hosts"]
                     ]
                 ),
@@ -189,9 +201,7 @@ class ConfigContextHelper:
             ),
             context_dataclass.FileProxyConfigContext(
                 upstream_ip=random.choice(gse_servers_info["bt_file_server_hosts"] or [""]),
-                upstream_port=self.ap.port_config.get(
-                    "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
-                ),
+                upstream_port=upstream_port,
                 report_ip=self.host.outer_ip or self.host.outer_ipv6,
                 report_port=self.ap.port_config.get(
                     "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
