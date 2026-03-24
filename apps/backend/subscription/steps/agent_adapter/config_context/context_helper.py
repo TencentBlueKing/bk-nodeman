@@ -90,7 +90,6 @@ class ConfigContextHelper:
             data_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
             io_port = self.ap.port_config.get("upstream_io_port") or self.ap.port_config["io_port"]
             data_port = self.ap.port_config.get("upstream_data_port") or self.ap.port_config["data_port"]
-            file_svr_port = self.ap.port_config.get("upstream_file_svr_port") or self.ap.port_config["file_svr_port"] 
             upstream_port=self.ap.port_config.get("upstream_file_topology_bind_port") or self.ap.port_config.get(
                 "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
             )
@@ -100,7 +99,6 @@ class ConfigContextHelper:
             data_hosts_for_agent: typing.List[str] = gse_servers_info["data_server_hosts"]
             io_port = self.ap.port_config["io_port"]
             data_port = self.ap.port_config["data_port"]
-            file_svr_port = self.ap.port_config["file_svr_port"]
             upstream_port= self.ap.port_config.get(
                 "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
             )
@@ -134,10 +132,10 @@ class ConfigContextHelper:
                     ]
                 ),
                 data_endpoints=",".join(
-                    [f"{data_host}:{data_port}" for data_host in data_hosts_for_agent]
+                    [f"{data_host}:{self.ap.port_config["data_port"]}" for data_host in data_hosts_for_agent]
                 ),
                 file_endpoints=",".join(
-                    [f"{file_host}:{file_svr_port}" for file_host in file_hosts_for_agent]
+                    [f"{file_host}:{self.ap.port_config["file_svr_port"]}" for file_host in file_hosts_for_agent]
                 ),
             ),
             context_dataclass.AgentBaseConfigContext(
