@@ -132,10 +132,10 @@ class ConfigContextHelper:
                     ]
                 ),
                 data_endpoints=",".join(
-                    [f"{data_host}:{self.ap.port_config["data_port"]}" for data_host in data_hosts_for_agent]
+                    [f"{data_host}:{self.ap.port_config['data_port']}" for data_host in data_hosts_for_agent]
                 ),
                 file_endpoints=",".join(
-                    [f"{file_host}:{self.ap.port_config["file_svr_port"]}" for file_host in file_hosts_for_agent]
+                    [f"{file_host}:{self.ap.port_config['file_svr_port']}" for file_host in file_hosts_for_agent]
                 ),
             ),
             context_dataclass.AgentBaseConfigContext(
