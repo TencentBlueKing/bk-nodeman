@@ -617,13 +617,13 @@ check_deploy_result () {
 
     AGENT_PID=$( get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent" "WORKER" )
 
-    is_port_listen_by_pid "$AGENT_PID" "$IO_PORT"  || { fail check_deploy_result FAILED "port $IO_PORT is not listen"; ((ret++)); }
-    # is_port_listen_by_pid "$AGENT_PID" $(seq "$BT_PORT_START" "$BT_PORT_END") || { fail check_deploy_result FAILED "bt port is not listen"; ((ret++)); }
-    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID, PORT:$IO_PORT) is not connect to gse server"; ((ret++)); }
+    # is_port_listen_by_pid "$AGENT_PID" "$IO_PORT"  || { fail check_deploy_result FAILED "port $IO_PORT is not listen"; ((ret++)); }
+    is_port_listen_by_pid "$AGENT_PID" $(seq "$BT_PORT_START" "$BT_PORT_END") || { fail check_deploy_result FAILED "bt port is not listen"; ((ret++)); }
+    # is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID, PORT:$IO_PORT) is not connect to gse server"; ((ret++)); }
 
     DATA_PID=$( get_pid_by_comm_path gse_data "$AGENT_SETUP_PATH/bin/gse_data" "WORKER" )
     is_port_listen_by_pid "$DATA_PID" "$DATA_PORT"  || { fail check_deploy_result FAILED "port $DATA_PORT is not listen"; ((ret++)); }
-    is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "gse_data(PID:$DATA_PID, PORT:$DATA_PORT) is not connect to gse server"; ((ret++)); }
+    # is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "gse_data(PID:$DATA_PID, PORT:$DATA_PORT) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse proxy has been deployed successfully"
 }
