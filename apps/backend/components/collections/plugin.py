@@ -54,6 +54,7 @@ from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
+from apps.utils.local import set_tenant_id
 from common.api import JobApi
 from env.constants import GseVersion
 from pipeline.component_framework.component import Component
@@ -1172,7 +1173,6 @@ class GseOperateProcService(PluginBaseService):
             self.finish_schedule()
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
-        tenant_id: str = self.tenant_id(data)
         op_type = data.get_one_of_inputs("op_type")
         gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
         policy_step_adapter = common_data.policy_step_adapter
@@ -1181,6 +1181,8 @@ class GseOperateProcService(PluginBaseService):
         group_id_instance_map = common_data.group_id_instance_map
         host_id_obj_map = common_data.host_id_obj_map
         operate_info: List = common_data.subscription.operate_info
+        tenant_id = common_data.subscription.tenant_id
+        set_tenant_id(tenant_id)
         host_id_user_map = {}
         system_account = {}
         if operate_info:
