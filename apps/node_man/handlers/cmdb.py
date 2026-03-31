@@ -592,7 +592,7 @@ class CmdbHandler(APIModel):
         return [obj["bk_obj_id"] for obj in topo]
 
     @staticmethod
-    def find_host_service_template(bk_host_ids: List[int]) -> List[Dict]:
+    def find_host_service_template(bk_host_ids: List[int], tenant_id: str) -> List[Dict]:
         """
         查询主机服务模板
         :return: [{"bk_host_id": 1, "service_template_id": [2, 3]}]
@@ -607,6 +607,7 @@ class CmdbHandler(APIModel):
                         * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT
                     ],
                     "no_request": True,
+                    "inject_tenant_id": tenant_id
                 }
             }
             for page in range(math.ceil(len(bk_host_ids) / constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT))

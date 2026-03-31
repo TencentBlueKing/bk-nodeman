@@ -1108,7 +1108,7 @@ class GseOperateProcService(PluginBaseService):
         return gse_control
 
     @staticmethod
-    def get_resource_policy(bk_host_ids: Set[int], plugin_name: str) -> Dict[int, Dict]:
+    def get_resource_policy(bk_host_ids: Set[int], plugin_name: str, tenant_id: str) -> Dict[int, Dict]:
         """查询资源策略"""
         # 给每台主机设置默认资源配置
         host_id__resource_policy_map = {
@@ -1124,7 +1124,7 @@ class GseOperateProcService(PluginBaseService):
         }
         # 查询主机对应的服务模板ID列表
         try:
-            host_service_templates = CmdbHandler.find_host_service_template(list(bk_host_ids))
+            host_service_templates = CmdbHandler.find_host_service_template(list(bk_host_ids), tenant_id)
         except ComponentCallError as error:
             # 接口不存在时，使用默认配置
             logger.exception(
@@ -1172,6 +1172,7 @@ class GseOperateProcService(PluginBaseService):
             self.finish_schedule()
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
+        tenant_id: str = self.tenant_id(data)
         op_type = data.get_one_of_inputs("op_type")
         gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
         policy_step_adapter = common_data.policy_step_adapter
@@ -1186,7 +1187,7 @@ class GseOperateProcService(PluginBaseService):
             host_id_user_map: Dict[int, str] = {info.get("bk_host_id"): info.get("user") for info in operate_info}
             system_account: Dict[str, str] = operate_info[0]
 
-        host_id__resource_policy_map = self.get_resource_policy(common_data.bk_host_ids, plugin.name)
+        host_id__resource_policy_map = self.get_resource_policy(common_data.bk_host_ids, plugin.name, tenant_id)
         proc_operate_req = []
         start_check_secs = models.GlobalSettings.get_config(
             models.GlobalSettings.KeyEnum.PLUGIN_PROC_START_CHECK_SECS.value,
