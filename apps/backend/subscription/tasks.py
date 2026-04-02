@@ -570,7 +570,7 @@ def run_subscription_task_and_create_instance_transaction(func):
     return wrapper
 
 
-def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map):
+def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map=None):
     deleted_instance_info = {}
     # 查找最新的记录
     latest_instance_ids = set()
@@ -815,9 +815,6 @@ def run_subscription_task_and_create_instance(
     instance_not_in_scope = [instance_id for instance_id in instance_actions if instance_id not in instances]
 
     if instance_not_in_scope:
-        instance_host_id_map = {
-            node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
-        }
         deleted_id_not_in_scope = []
         for instance_id in instance_not_in_scope:
             if subscription.object_type == models.Subscription.ObjectType.HOST:
@@ -847,9 +844,7 @@ def run_subscription_task_and_create_instance(
 
         # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
         not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info)
-        deleted_instance_info.update(
-            get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map)
-        )
+        deleted_instance_info.update(get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id))
 
         instances.update(deleted_instance_info)
 
