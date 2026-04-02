@@ -476,6 +476,8 @@ class JobHandler(APIModel):
         identity_id_to_delete = []
         host_id_to_delete = []
 
+        tenant_id = get_tenant_id()
+
         # 获得需要修改的认证信息的rentention
         if not is_manual:
             # 非手动模式需要认证信息
@@ -593,6 +595,7 @@ class JobHandler(APIModel):
                         "updated_at": update_time,
                         "is_manual": is_manual,
                         "extra_data": host_extra_data,
+                        "tenant_id": tenant_id,
                     }
                 )
             )
