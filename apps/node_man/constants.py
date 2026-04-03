@@ -990,14 +990,14 @@ class GsePackageCode(EnhanceEnum):
 class GsePackageEnv(EnhanceEnum):
     """安装包Env文件名称"""
 
-    PROXY = ["gse_proxy.env"]
+    PROXY = ["gse_proxy.env", "gse_agent.env"]
     AGENT = ["gse_agent.env"]
 
 
 class GsePackageTemplate(EnhanceEnum):
     """安装包Template文件名称"""
 
-    PROXY = ["gse_data_proxy.conf", "gse_file_proxy.conf"]
+    PROXY = ["gse_data_proxy.conf", "gse_file_proxy.conf", "gse_agent.conf"]
     AGENT = ["gse_agent.conf"]
 
 
