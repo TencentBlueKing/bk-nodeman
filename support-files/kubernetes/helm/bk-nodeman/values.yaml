@@ -627,7 +627,7 @@ redis:
 
   auth:
     enabled: true
-    password: "bk_nodeman"
+    password: ""
 
   master:
     service:
@@ -647,10 +647,10 @@ mysql:
   architecture: "standalone"
 
   auth:
-    rootPassword: "bk_nodeman"
+    rootPassword: ""
     database: "bk_nodeman"
     username: "bk_nodeman"
-    password: "bk_nodeman"
+    password: ""
 
   initdbScripts:
     grant_user_pms.sql: |
@@ -707,7 +707,7 @@ rabbitmq:
   enabled: true
   auth:
     username: "bk_nodeman"
-    password: "bk_nodeman"
+    password: ""
 
   service:
     port: 5672
@@ -731,7 +731,7 @@ externalRedis:
   architecture: "standalone"
   host: "bk_nodeman"
   port: 6379
-  password: "bk_nodeman"
+  password: ""
 
 ## External MySQL configuration
 ##
@@ -739,7 +739,7 @@ externalMySQL:
   host: "host.docker.internal"
   port: 3306
   username: "bk_nodeman"
-  password: "bk_nodeman"
+  password: ""
   database: "bk_nodeman"
 
 ## External RabbitMQ configuration
@@ -749,7 +749,7 @@ externalRabbitMQ:
   port: 5672
   vhost: "bk_nodeman"
   username: "bk_nodeman"
-  password: "bk_nodeman"
+  password: ""
 
 bkNotice:
   enabled: false

@@ -598,6 +598,30 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
 
         return {"dest_dir": dest_dir, "run_cmd": run_cmd, "download_cmd": download_cmd}
 
+    def adjust_powershell_proxy_config(self, cmd: str, option: typing.Optional[str] = None):
+        # 直连无需启用代理
+        if not ExecutionSolutionTools.need_jump_server(self.host):
+            return cmd
+
+        option: str = option or "-Proxy"
+        http_proxy_url: str = self.get_http_proxy_url()
+
+        def _enable_proxy_config() -> str:
+            return f"{cmd.replace('Stop', f'Stop {option} {http_proxy_url}')}"
+
+        if self.host.install_channel_id:
+            # 通过安装通道安装允许配置是否启用下载代理
+            __, upstream_servers = self.install_channel
+            agent_download_proxy: bool = upstream_servers.get("agent_download_proxy", True)
+            #  启用下载代理
+            if agent_download_proxy:
+                cmd = _enable_proxy_config()
+        else:
+            # 非直连默认启用下载代理
+            cmd = _enable_proxy_config()
+
+        return cmd
+
     def _make(self) -> ExecutionSolution:
         # 生成安装脚本执行命令
         run_cmd_params: typing.List[str] = self.get_run_cmd_base_params()
@@ -624,6 +648,11 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
             steps=self.build_need_download_script_hook_steps(is_shell_adapter=True),
         )
 
+        powershell_cmd_whitelist_biz = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.Key.POWERSHELL_CMD_WHITELIST_BIZ,
+            default=[]
+        )
+
         if self.host.os_type == constants.OsType.WINDOWS:
             # 依赖前置条件，直接下发的命令放置到依赖下载步骤之前
             execution_solution.steps = self.build_oneline_script_hook_steps() + execution_solution.steps
@@ -636,12 +665,21 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
             )
             for name, description in constants.AgentWindowsDependencies.get_member_value__alias_map().items():
                 # 默认 Cygwin 自带 curl
-                # 若不存在引导安装：https://stackoverflow.com/questions/3647569/
-                dependence_download_cmd: str = (
-                    f"curl {self.gse_servers_info['package_url']}/{name} "
-                    f"-o {cmd_name__cmd_map['dest_dir']}{name} --connect-timeout 5 -sSfg"
-                )
-                dependence_download_cmd = self.adjust_cmd_proxy_config(dependence_download_cmd)
+                # 若不存在引导安装：https://stackoverflow.com/questions/3647569/             
+                if self.host.bk_biz_id in powershell_cmd_whitelist_biz:
+                    dependence_download_cmd = (
+                        f'powershell -NoProfile -Command '
+                        f'"\\$ProgressPreference=\'SilentlyContinue\';Invoke-RestMethod -Uri \'{self.gse_servers_info["package_url"]}/{name}\' '
+                        f'-OutFile \'{cmd_name__cmd_map["dest_dir"]}{name}\' '
+                        f'-TimeoutSec 5 -ErrorAction Stop"'
+                    )
+                    dependence_download_cmd = self.adjust_powershell_proxy_config(dependence_download_cmd)
+                else:
+                    dependence_download_cmd: str = (
+                        f"curl {self.gse_servers_info['package_url']}/{name} "
+                        f"-o {cmd_name__cmd_map['dest_dir']}{name} --connect-timeout 5 -sSfg"
+                    )
+                    dependence_download_cmd = self.adjust_cmd_proxy_config(dependence_download_cmd)
                 dependence_download_cmds_step.contents.append(
                     ExecutionSolutionStepContent(name=name, text=dependence_download_cmd, description=str(description))
                 )
