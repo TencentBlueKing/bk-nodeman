@@ -649,7 +649,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         )
 
         powershell_cmd_whitelist_biz = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.Key.POWERSHELL_CMD_WHITELIST_BIZ,
+            key=models.GlobalSettings.KeyEnum.POWERSHELL_CMD_WHITELIST_BIZ.value,
             default=[]
         )
 
