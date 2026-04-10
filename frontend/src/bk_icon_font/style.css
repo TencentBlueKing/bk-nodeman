@@ -23,6 +23,15 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
   -moz-osx-font-smoothing: grayscale;
 }
 
+.nc-export:before {
+	content: "\e1bb";
+}
+.nc-check-circle-fill:before {
+	content: "\e186";
+}
+.nc-user:before {
+	content: "\e1ba";
+}
 .nc-alicloud:before {
 	content: "\e101";
 }
@@ -248,6 +257,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .nc-xiazai:before {
 	content: "\e158";
 }
+.nc-authority:before {
+	content: "\e1b9";
+}
 .nc-switchon:before {
 	content: "\e159";
 }
@@ -311,6 +323,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .nc-manual:before {
 	content: "\e16b";
 }
+.nc-not-favorited:before {
+	content: "\e18a";
+}
+.nc-collect:before {
+	content: "\e189";
+}
 .nc-history:before {
 	content: "\e16c";
 }
@@ -319,4 +337,97 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .nc-template:before {
 	content: "\e16d";
+}
+.nc-terminated:before {
+	content: "\e177";
+}
+.nc-running:before {
+	content: "\e178";
+}
+.nc-warning:before {
+	content: "\e179";
+}
+.nc-unknown:before {
+	content: "\e17a";
+}
+.nc-return-center:before {
+	content: "\e173";
+}
+.nc-minimap:before {
+	content: "\e174";
+}
+.nc-proportion:before {
+	content: "\e172";
+}
+.nc-awscloud:before {
+	content: "\e175";
+}
+.nc-googlecloud-2:before {
+	content: "\e176";
+}
+.nc-arrows-right:before {
+	content: "\e17b";
+}
+.nc-angle-double-down:before {
+	content: "\e17c";
+}
+.nc-excel-2:before {
+	content: "\e17e";
+}
+.nc-topo:before {
+	content: "\e17d";
+}
+.nc-edit:before {
+	content: "\e17f";
+}
+.nc-remote-install:before {
+	content: "\e182";
+}
+.nc-workarea:before {
+	content: "\e180";
+}
+.nc-record:before {
+	content: "\e181";
+}
+.nc-custom-install:before {
+	content: "\e183";
+}
+.nc-cloud-machine:before {
+	content: "\e184";
+}
+.nc-delete-3:before {
+	content: "\e185";
+}
+.nc-macos:before {
+	content: "\e187";
+}
+.nc-package-agent:before {
+	content: "\e188";
+}
+.nc-package-agent-2:before {
+	content: "\e18c";
+}
+.nc-package-proxy:before {
+	content: "\e18b";
+}
+.nc-agentcelve:before {
+	content: "\e18d";
+}
+.nc-proxycelve:before {
+	content: "\e18e";
+}
+.nc-agent-jiedian:before {
+	content: "\e190";
+}
+.nc-proxy-jiedian:before {
+	content: "\e18f";
+}
+.nc-vector:before {
+	content: "\e1b6";
+}
+.nc-downstream:before {
+	content: "\e1b7";
+}
+.nc-area:before {
+	content: "\e1b8";
 }

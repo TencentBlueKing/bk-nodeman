@@ -22,11 +22,11 @@
       <NmColumn :label="$t('策略名称')" prop="name" :render-header="renderHeader" />
       <NmColumn :label="$t('最近修改人')" prop="creator" sortable>
         <template #default="{ row }">
-          <template v-if="ENABLE_MULTI_TENANT_MODE">
+          <template v-if="ENABLE_MULTI_TENANT_MODE && row.creator">
             <bk-user-display-name :user-id="row.creator"></bk-user-display-name>
           </template>
           <template v-else>
-            {{ row.creator }}
+            {{ row.creator || '--' }}
           </template>
         </template>
       </NmColumn>
@@ -103,25 +103,8 @@ export default class RuleTable extends Vue {
   private currentRow: IPolicyBase | null = null;
   private targetType: 'TOPO' | 'HOST' = 'TOPO';
 
-  private get API_BASE_URL() {
-    return window.PROJECT_CONFIG.API_BASE_URL;
-  }
   private get ENABLE_MULTI_TENANT_MODE() {
     return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
-  }
-  private created() {
-    if (this.API_BASE_URL) {
-      BkUserDisplayName.configure({
-        // 必填，租户 ID
-        tenantId: window.PROJECT_CONFIG.TENANT_ID,
-        // 必填，网关地址
-        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
-        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
-        cacheDuration: 1000 * 60 * 5,
-        // 可选，当输入为空时，显示的文本，默认为 '--'
-        emptyText: '--'
-      });
-    }
   }
 
   private get sortTableData() {
