@@ -32,10 +32,10 @@ class ConfigurePolicyService(AgentBaseService):
 
         # 获取主机对应的管控区域
         cloud_name_map = {
-            cloud.id: cloud.bk_cloud_name
+            cloud["bk_cloud_id"]: cloud["bk_cloud_name"]
             for cloud in models.Cloud.objects.filter(
                 bk_cloud_id__in=[host.bk_cloud_id for host in host_id_obj_map.values()]
-            ).values("id", "bk_cloud_name")
+            ).values("bk_cloud_id", "bk_cloud_name")
         }
         security_group_type = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.SECURITY_GROUP_TYPE.value)
         if not security_group_type:
