@@ -188,3 +188,13 @@ MAX_RUN_SUBSCRIPTION_TASK_COUNT = 50
 
 # 订阅删除时间小时数
 SUBSCRIPTION_DELETE_HOURS = 6
+
+
+class SecurityGroupType(enum.EnhanceEnum):
+    """安全组类型"""
+
+    SOPS = "SOPS"
+    SOPS_RICH = "SOPS_RICH"
+    TENCENT = "TENCENT"
+    YUNTI = "YUNTI"
+    TXY = "TXY"

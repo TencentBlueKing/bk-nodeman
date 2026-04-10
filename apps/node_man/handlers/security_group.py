@@ -113,6 +113,30 @@ class SopsSecurityGroupFactory(BaseSecurityGroupFactory):
         return state == "FINISHED"
 
 
+class SopsRichSecurityGroupFactory(SopsSecurityGroupFactory):
+    SECURITY_GROUP_TYPE = "SOPS_RICH"
+
+    def add_ips_to_security_group(self, white_list_info: List[str], creator: str = None) -> Dict:
+        task_id = SopsApi.create_task(
+            {
+                "name": "NodeMan Configure SecurityGroup",
+                "template_id": settings.BKAPP_EE_SOPS_TEMPLATE_ID,
+                "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
+                "bk_username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
+                "constants": {"${white_list_info}": ",".join(white_list_info)},
+                "constants": {"${deal_method}": "add"},
+            }
+        )["task_id"]
+        SopsApi.start_task(
+            {
+                "task_id": task_id,
+                "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
+                "bk_username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
+            }
+        )
+        return {"task_id": task_id}
+
+
 class TencentVpcSecurityGroupFactory(BaseSecurityGroupFactory):
     SECURITY_GROUP_TYPE = "TENCENT"
 
