@@ -55,7 +55,12 @@
                 </ul>
               </template>
             </MixinsControlDropdown>
-            <MixinsControlDropdown ext-cls="menu-dropdown">
+            <BkLoginUserinfo
+              :userinfo="loginUserinfo"
+              :action-list="loginActionList"
+              :render-slot="renderLoginSlot"
+            />
+            <!-- <MixinsControlDropdown ext-cls="menu-dropdown">
               <div class="header-user header-nav-btn">
                 <template v-if="ENABLE_MULTI_TENANT_MODE && currentUser">
                   <bk-user-display-name :user-id="currentUser"></bk-user-display-name>
@@ -76,7 +81,7 @@
                   </li>
                 </ul>
               </template>
-            </MixinsControlDropdown>
+            </MixinsControlDropdown> -->
           </div>
         </div>
       </template>
@@ -139,6 +144,8 @@ import { bus } from '@/common/bus';
 import { INavConfig, ISubNavConfig } from '@/types';
 import logoSrc from '@/images/logoIcon.png';
 import BkUserDisplayName from '@blueking/bk-user-display-name';
+import BkLoginUserinfo from '@blueking/login-userinfo/vue2/index.umd.min';
+import '@blueking/login-userinfo/vue2/vue2.css';
 
 interface IUserItem {
   id: string
@@ -153,6 +160,7 @@ interface IUserItem {
     LogVersion,
     ExceptionPage,
     MixinsControlDropdown,
+    BkLoginUserinfo,
   },
 })
 export default class NodemanNavigation extends Mixins(routerBackMixin) {
@@ -204,6 +212,34 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     { id: 'PERMISSION', name: window.i18n.t('权限中心'), href: window.PROJECT_CONFIG.BK_IAM_SAAS_HOST },
     { id: 'PERSONAL', name: window.i18n.t('个人中心'), href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL },
     { id: 'LOGOUT', name: window.i18n.t('退出登录') },
+  ];
+  private loginUserinfo = {
+    name: this.currentUser,
+    email: window.PROJECT_CONFIG.USER_EMAIL || '',
+    organization: window.PROJECT_CONFIG.TENANT_ID || '',
+    timezone: window.PROJECT_CONFIG.USER_TIMEZONE || '',
+  };
+  private loginActionList = [
+    {
+      text: window.i18n.t('权限中心'),
+      icon: 'nodeman-icon nc-authority',
+      href: window.PROJECT_CONFIG.BK_IAM_SAAS_HOST,
+      target: '_blank',
+      theme: 'primary' as const,
+    },
+    {
+      text: window.i18n.t('个人中心'),
+      icon: 'nodeman-icon nc-user',
+      href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL,
+      target: '_blank',
+      theme: 'primary' as const,
+    },
+    {
+      text: window.i18n.t('退出登录'),
+      icon: 'nodeman-icon nc-export',
+      theme: 'danger' as const,
+      handle: () => this.handleLogout(),
+    },
   ];
   private showLog = false;
   private subTitleMap: { [key: string]: string } = {
@@ -431,6 +467,24 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     }
     this.helpListRef && this.helpListRef.instance.hide();
   }
+  // vue2 不支持 slot 方式，使用 renderSlot
+  private renderLoginSlot = (h: any) => {
+    return h('bk-user-display-name', { 'user-id': this.currentUser });
+  };
+  /**
+   * 退出登录
+   */
+  private handleLogout() {
+    if (NODE_ENV === 'development') {
+      window.location.href = `${LOGIN_DEV_URL.replace('bknodeman.','')}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`;
+    } else {
+      let loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
+      if (!/http(s)?:\/\//.test(loginUrl)) {
+        loginUrl = `${window.location.protocol}//${loginUrl}`;
+      }
+      window.location.href = `${loginUrl}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`;
+    }
+  }
   private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
       if (NODE_ENV === 'development') {
@@ -588,7 +642,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   .nodeman-navigation {
     &-header {
       width: 100%;
-      overflow: hidden;
+      overflow: visible;
       font-size: 14px;
 
       @mixin layout-flex row, center, space-between;
@@ -622,6 +676,24 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
         @mixin layout-flex row, center;
         i {
           margin-left: 8px;
+        }
+      }
+      /* BkLoginUserinfo 组件在导航栏中的样式适配 */
+      /deep/ .bk-login-userinfo {
+        color: $navColor;
+        cursor: pointer;
+        margin-left: 10px;
+        &:hover {
+          color: $navHoverColor;
+        }
+        &.is-active {
+          color: $navHoverColor;
+        }
+        .bk-login-userinfo-panel {
+          z-index: 9999;
+          position: fixed !important;
+          top: 52px !important;
+          right: 10px !important;
         }
       }
       .header-nav {

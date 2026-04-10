@@ -45,10 +45,11 @@
               const BKPAAS_SHARED_RES_URL  = ''
               const DISPLAY_TAG  = 'True'
               API_BASE_URL = ''
-              TENANT_ID = ''
+              TENANT_ID = 'system'
               ENABLE_MULTI_TENANT_MODE = ''
               BK_IAM_SAAS_HOST = ''
               BK_PERSONAL_CENTER_URL = ''
+              USER_TIMEZONE = ''
 
               return {
                   SITE_URL: SITE_URL,
@@ -93,6 +94,7 @@
                   ENABLE_MULTI_TENANT_MODE,
                   BK_IAM_SAAS_HOST,
                   BK_PERSONAL_CENTER_URL,
+                  USER_TIMEZONE,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

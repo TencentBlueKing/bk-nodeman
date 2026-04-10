@@ -53,6 +53,8 @@
               const ENABLE_MULTI_TENANT_MODE = '{{ ENABLE_MULTI_TENANT_MODE }}'
               const BK_IAM_SAAS_HOST = '{{ BK_IAM_SAAS_HOST }}'
               const BK_PERSONAL_CENTER_URL = '{{ BK_PERSONAL_CENTER_URL }}'
+              const USER_TIMEZONE = '{{ USER_TIMEZONE }}'
+              const USER_EMAIL = '{{ USER_EMAIL }}'
 
               return {
                   APP_CODE,
@@ -97,6 +99,8 @@
                   ENABLE_MULTI_TENANT_MODE,
                   BK_IAM_SAAS_HOST,
                   BK_PERSONAL_CENTER_URL,
+                  USER_TIMEZONE,
+                  USER_EMAIL,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
