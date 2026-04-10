@@ -113,8 +113,10 @@ class SopsSecurityGroupFactory(BaseSecurityGroupFactory):
         return state == "FINISHED"
 
 
-class SopsRichSecurityGroupFactory(SopsSecurityGroupFactory):
+class SopsRichSecurityGroupFactory(BaseSecurityGroupFactory):
     SECURITY_GROUP_TYPE = "SOPS_RICH"
+    def describe_security_group_address(self):
+        pass
 
     def add_ips_to_security_group(self, white_list_info: List[str], creator: str = None) -> Dict:
         task_id = SopsApi.create_task(
@@ -123,8 +125,10 @@ class SopsRichSecurityGroupFactory(SopsSecurityGroupFactory):
                 "template_id": settings.BKAPP_EE_SOPS_TEMPLATE_ID,
                 "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
                 "bk_username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
-                "constants": {"${white_list_info}": ",".join(white_list_info)},
-                "constants": {"${deal_method}": "add"},
+                "constants": {
+                    "${white_list_info}": ",".join(white_list_info),
+                    "${deal_method}": "add"
+                }
             }
         )["task_id"]
         SopsApi.start_task(
@@ -135,6 +139,17 @@ class SopsRichSecurityGroupFactory(SopsSecurityGroupFactory):
             }
         )
         return {"task_id": task_id}
+
+    def check_result(self, add_ip_output: Dict) -> bool:
+        # 标准运维执行，只要任务成功完成则认为添加成功，由标准运维原子来保证可靠性
+        state = SopsApi.get_task_status(
+            {
+                "task_id": add_ip_output["task_id"],
+                "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
+                "bk_username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
+            }
+        )["state"]
+        return state == "FINISHED"
 
 
 class TencentVpcSecurityGroupFactory(BaseSecurityGroupFactory):
