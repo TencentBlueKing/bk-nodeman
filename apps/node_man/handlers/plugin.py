@@ -466,9 +466,7 @@ class PluginHandler(APIModel):
         enable_sub_ids = list(Subscription.objects.filter(id__in=sub_ids, enable=True).values_list("id", flat=True))
         if not enable_sub_ids:
             return
-        ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, source_id__in=enable_sub_ids).update(
-            status="TERMINATED"
-        )
+        ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, source_id__in=enable_sub_ids).delete()
         for subscription_id in enable_sub_ids:
             SubscriptionHandler(subscription_id).run()
 
