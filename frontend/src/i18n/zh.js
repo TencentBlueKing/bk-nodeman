@@ -501,6 +501,8 @@ export default {
   Agent信息Windows: 'Agent 信息（Windows）',
   Proxy信息: 'Proxy 信息',
   Proxy上的安装包: 'Proxy 上的安装包',
+  非系统管理员启用sudo执行安装命令: '非系统管理员启用sudo执行安装命令',
+  启用sudo: '启用sudo',
   接入点说明: '接入点说明',
   接入点说明placeholder: '描述新增的接入点信息，注意事项等',
   Zookeeper集群地址: 'Zookeeper集群地址',
