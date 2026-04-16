@@ -1523,6 +1523,13 @@ class DeleteSubscriptionService(PluginBaseService):
         )
 
 
+class DirectDeleteSubscriptionService(PluginBaseService):
+    def _execute(self, data, parent_data, common_data: PluginCommonData):
+        subscription = common_data.subscription
+        subscription.delete()
+        self.log_info(log_content=_("订阅 -> {id} 删除成功").format(id=subscription.id))
+
+
 class SwitchSubscriptionEnableService(PluginBaseService):
     def inputs_format(self):
         return [
@@ -1736,6 +1743,12 @@ class DeleteSubscriptionComponent(Component):
     name = "DeleteSubscriptionComponent"
     code = "delete_subscription"
     bound_service = DeleteSubscriptionService
+
+
+class DirectDeleteSubscriptionComponent(Component):
+    name = "DirectDeleteSubscriptionComponent"
+    code = "direct_delete_subscription"
+    bound_service = DirectDeleteSubscriptionService
 
 
 class SwitchSubscriptionEnableComponent(Component):

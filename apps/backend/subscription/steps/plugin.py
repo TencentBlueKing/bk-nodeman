@@ -130,6 +130,7 @@ class PluginStep(Step):
             backend_const.ActionNameType.MAIN_STOP_AND_DELETE_PLUGIN: MainStopAndDeletePlugin,
             backend_const.ActionNameType.DEBUG_PLUGIN: DebugPlugin,
             backend_const.ActionNameType.STOP_DEBUG_PLUGIN: StopDebugPlugin,
+            backend_const.ActionNameType.UNINSTALL_AND_DELETE: UninstallAndDeletePlugin,
         }
         if self.plugin_desc.is_official:
             # 官方插件是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删
@@ -1097,6 +1098,44 @@ class UninstallPlugin(PluginAction):
             plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
         ]
         return activities, None
+
+
+class UninstallAndDeletePlugin(PluginAction):
+    """
+    卸载插件并删除订阅
+    """
+
+    ACTION_NAME = backend_const.ActionNameType.UNINSTALL_AND_DELETE
+    ACTION_DESCRIPTION = _("卸载插件并删除订阅")
+
+    def _generate_activities(self, plugin_manager):
+        # 停用插件 -> 卸载插件
+        activities = [
+            plugin_manager.operate_proc(constants.GseOpType.STOP, self.step.plugin_desc),
+            plugin_manager.uninstall_package(),
+            plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
+        ]
+        return activities, None
+
+    def generate_activities(
+        self,
+        subscription_instances: List[models.SubscriptionInstanceRecord],
+        global_pipeline_data: Data,
+        meta: Dict[str, Any],
+        current_activities=None,
+    ):
+        plugin_manager = self.get_plugin_manager(subscription_instances)
+        activities, pipeline_data = super().generate_activities(
+            subscription_instances, global_pipeline_data, meta, current_activities
+        )
+        # 最后一个批次删除订阅
+        if meta.get("is_last_batch", False):
+            activities.append(plugin_manager.direct_delete_subscription())
+            for act in activities:
+                act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
+                act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
+                act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
+        return activities, pipeline_data
 
 
 class PushConfig(PluginAction):
