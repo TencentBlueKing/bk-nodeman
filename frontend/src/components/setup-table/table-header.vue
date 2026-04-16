@@ -100,6 +100,7 @@ import InstallInputType from './install-input-type.vue';
 import { IFileInfo, ISetupRow } from '@/types';
 import TableHeaderTip from './table-header-tip.vue';
 import { getConfigRemark } from '@/config/config';
+import xss from 'xss';
 
 @Component({
   name: 'table-header',
@@ -148,9 +149,11 @@ export default class TableHeader extends Vue {
     bus.$on('batch-btn-click', this.hidePopover); // 只出现一个弹框
   }
   private mounted() {
+    const dropdownContent = this.tipRef.innerHTML;
+    const safeContent = xss(dropdownContent);
     if (this.tips) {
       this.popoverInstance = this.$bkPopover(this.tipSpan, {
-        content: this.tipRef,
+        content: safeContent,
         allowHTML: true,
         trigger: 'mouseenter',
         arrow: true,
