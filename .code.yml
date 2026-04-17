@@ -1,0 +1,7 @@
+source:
+  test_source: 
+    filepath_regex: [".*/apps/backend/plugin/.*", ".*/apps/authentication.py.*", ".*/apps/node_man/periodic_tasks/.*", ".*/frontend/static/.*", ".*/requirements.txt.*", ".*/apps/node_man/models.py.*", ".*/frontend/src/views/cloud/.*", ".*/apps/middlewares.py.*", ".*/apps/node_man/handlers/password.py.*"]
+  auto_generate_source:
+    filepath_regex: 
+  third_party_source:
+    filepath_regex: [".*/pipeline/.*"]
