@@ -19,7 +19,7 @@ from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
 from apps.node_man import constants, models
 from apps.node_man.constants import DEFAULT_CLOUD
-from apps.node_man.models import GsePluginDesc, SubscriptionStep
+from apps.node_man.models import GsePluginDesc, SubscriptionStep, GlobalSettings
 from env.constants import GseVersion
 from pipeline import builder
 from pipeline.builder import Var
@@ -467,8 +467,17 @@ class UpgradeProxy(ReinstallProxy):
 
         # 推送文件到proxy
         if settings.BKAPP_ENABLE_DHCP:
+            files = constants.TOOLS_TO_PUSH_TO_PROXY.copy()
+            if GlobalSettings.get_config(
+                key=GlobalSettings.KeyEnum.PUSH_PY311_TO_PROXY.value, default="false"
+            ) == "true":
+                files[0] = {
+                    "files": ["py36-x86_64.tgz", "py36-aarch64.tgz", "py311-x86_64.tgz", "py311-aarch64.tgz"], 
+                    "name": _("检测 BT 分发策略（下发Py36包）"),
+                }
+
             activities = self.append_push_file_activities(
-                agent_manager, activities, files=constants.TOOLS_TO_PUSH_TO_PROXY
+                agent_manager, activities, files=files
             )
         else:
             activities = self.append_push_file_activities(agent_manager, activities)
@@ -623,8 +632,15 @@ class InstallProxy2(AgentAction):
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             # agent_manager.check_policy_gse_to_proxy(),
         ]
-
-        activities = self.append_push_file_activities(agent_manager, activities, files=constants.TOOLS_TO_PUSH_TO_PROXY)
+        files = constants.TOOLS_TO_PUSH_TO_PROXY.copy()
+        if GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.PUSH_PY311_TO_PROXY.value, default="false"
+        ) == "true":
+            files[0] = {
+                "files": ["py36-x86_64.tgz", "py36-aarch64.tgz", "py311-x86_64.tgz", "py311-aarch64.tgz"], 
+                "name": _("检测 BT 分发策略（下发Py36包）"),
+            }
+        activities = self.append_push_file_activities(agent_manager, activities, files=files)
         activities.append(agent_manager.start_nginx())
         if self.enable_push_host_identifier:
             activities.append(agent_manager.push_host_identifier())

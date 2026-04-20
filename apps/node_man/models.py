@@ -198,6 +198,7 @@ class GlobalSettings(models.Model):
         AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY = "AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY"
         NGINX_HTTP_WHITELIST = "NGINX_HTTP_WHITELIST"
         POWERSHELL_CMD_WHITELIST_BIZ = "POWERSHELL_CMD_WHITELIST_BIZ"
+        PUSH_PY311_TO_PROXY = "PUSH_PY311_TO_PROXY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
