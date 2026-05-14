@@ -16,7 +16,7 @@ from apps.node_man import constants
 
 # run_every 周期都用秒作为单位的 int 类型，不使用crontab格式，以便与削峰函数 calculate_countdown 所用的 duration 复用
 # 自动下发触发周期
-SUBSCRIPTION_UPDATE_INTERVAL = 2 * constants.TimeUnit.HOUR
+SUBSCRIPTION_UPDATE_INTERVAL = 4 * constants.TimeUnit.HOUR
 
 # 检查僵尸订阅实例记录周期
 CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL = 15 * constants.TimeUnit.MINUTE

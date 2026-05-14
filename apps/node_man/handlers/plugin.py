@@ -267,24 +267,36 @@ class PluginHandler(APIModel):
         # 获得每个Host下的插件
         host_plugin = defaultdict(list)
         agent_status = dict()
-        plugins = ProcessStatus.objects.filter(
-            Q(source_type=ProcessStatus.SourceType.DEFAULT, is_latest=True)
-            | Q(source_type=ProcessStatus.SourceType.DEFAULT, proc_type=const.ProcType.AGENT),
-            bk_host_id__in=bk_host_ids,
-        ).values()
-        for plugin in plugins:
-            if plugin["proc_type"] == const.ProcType.AGENT:
+        plugin_fields = ["bk_host_id", "name", "status", "version"]
+        batch_size = 500
+        for index in range(0, len(bk_host_ids), batch_size):
+            host_id_batch = bk_host_ids[index : index + batch_size]
+            latest_plugins = (
+                ProcessStatus.objects.filter(
+                    source_type=ProcessStatus.SourceType.DEFAULT,
+                    is_latest=True,
+                    bk_host_id__in=host_id_batch,
+                )
+                .exclude(proc_type=const.ProcType.AGENT)
+                .values(*plugin_fields)
+            )
+            agent_plugins = ProcessStatus.objects.filter(
+                source_type=ProcessStatus.SourceType.DEFAULT,
+                proc_type=const.ProcType.AGENT,
+                bk_host_id__in=host_id_batch,
+            ).values(*plugin_fields)
+            for plugin in latest_plugins:
+                host_plugin[plugin["bk_host_id"]].append(
+                    {
+                        "name": plugin["name"],
+                        "status": plugin["status"],
+                        "version": plugin["version"],
+                        "host_id": plugin["bk_host_id"],
+                    }
+                )
+            for plugin in agent_plugins:
                 if plugin["name"] == ProcessStatus.GSE_AGENT_PROCESS_NAME:
                     agent_status[plugin["bk_host_id"]] = {"status": plugin["status"], "version": plugin["version"]}
-                continue
-            host_plugin[plugin["bk_host_id"]].append(
-                {
-                    "name": plugin["name"],
-                    "status": plugin["status"],
-                    "version": plugin["version"],
-                    "host_id": plugin["bk_host_id"],
-                }
-            )
 
         ap_id_obj_map = AccessPoint.ap_id_obj_map()
 
