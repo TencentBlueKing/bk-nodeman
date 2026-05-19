@@ -15,6 +15,7 @@ import operator
 from collections import defaultdict
 from dataclasses import asdict
 from functools import cmp_to_key, reduce
+from html import escape
 from typing import Any, Dict, List
 
 from django.core.cache import caches
@@ -46,6 +47,13 @@ logger = logging.getLogger("app")
 cache = caches["db"]
 
 SUBSCRIPTION_VIEW_TAGS = ["subscription"]
+COMMAND_TEXT_MAX_LENGTH = 8192
+
+
+def _sanitize_command_text_for_display(text: Any) -> str:
+    text = "" if text is None else str(text)
+    text = text.replace("\x00", "")[:COMMAND_TEXT_MAX_LENGTH]
+    return escape(text, quote=True)
 
 
 class SubscriptionViewSet(APIViewSet):
@@ -558,6 +566,11 @@ class SubscriptionViewSet(APIViewSet):
             execution_solutions = installation_tool.type__execution_solution_map.values()
 
         solutions = [basic.obj_to_dict(execution_solution) for execution_solution in execution_solutions]
+        for solution in solutions:
+            for step in solution.get("steps", []):
+                for content in step.get("contents", []):
+                    if "text" in content:
+                        content["text"] = _sanitize_command_text_for_display(content["text"])
 
         return Response({"solutions": solutions})
 

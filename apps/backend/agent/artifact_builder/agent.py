@@ -14,6 +14,7 @@ import tarfile
 import typing
 
 from apps.node_man import constants
+from apps.utils.files import safe_extract
 
 from . import base
 
@@ -35,7 +36,7 @@ class AgentArtifactBuilder(base.BaseArtifactBuilder):
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
         with tarfile.open(name=initial_artifact_local_path) as tf:
-            tf.extractall(path=extract_dir)
+            safe_extract(tf, path=extract_dir)
         extract_dir: str = os.path.join(extract_dir, self.BASE_PKG_DIR)
         self._inject_dependencies(extract_dir)
         return extract_dir

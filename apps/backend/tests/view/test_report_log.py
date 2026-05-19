@@ -81,3 +81,24 @@ class ReportLogTestCase(ViewBaseTestCase):
             REDIS_INST.lrange(self.gen_redis_list_key(), 0, 0)[0].decode(encoding="utf-8"),
             json.dumps(second_query_params["logs"][-1]),
         )
+
+    def test_escape_report_log_html(self):
+        """验证上报日志写入 Redis 前会转义 HTML，避免前端 v-html 执行脚本"""
+        malicious_log = {
+            "timestamp": time.time(),
+            "level": "INFO",
+            "step": "setup_agent",
+            "log": '<img src=x onerror="window.__xss=1">',
+            "status": "RUNNING",
+        }
+        self.client.post(
+            path="/backend/report_log/",
+            data={"task_id": self.PIPELINE_ID, "token": self.gen_token(), "logs": [malicious_log]},
+            format=None,
+            content_type="application/x-www-form-urlencoded",
+        )
+
+        stored_log = json.loads(REDIS_INST.lrange(self.gen_redis_list_key(), 0, 0)[0].decode(encoding="utf-8"))
+        self.assertNotIn("<img", stored_log["log"])
+        self.assertIn("&lt;img", stored_log["log"])
+        self.assertIn("&quot;window.__xss=1&quot;", stored_log["log"])

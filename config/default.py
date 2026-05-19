@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 import sys
 from enum import Enum
 from typing import Dict, Optional
@@ -570,6 +571,19 @@ UPLOAD_PATH = os.path.join(PUBLIC_PATH, "upload")
 
 # 下载文件路径
 EXPORT_PATH = os.path.join(PUBLIC_PATH, "export")
+
+ALLOWED_FILE_SYSTEM_STORAGE_PATHS = [
+    path.strip() for path in os.getenv("ALLOWED_FILE_SYSTEM_STORAGE_PATHS", "").split(",") if path.strip()
+]
+SAFE_DOWNLOAD_ALLOWED_HOSTS = [
+    host.strip() for host in os.getenv("SAFE_DOWNLOAD_ALLOWED_HOSTS", "").split(",") if host.strip()
+]
+SAFE_DOWNLOAD_BLOCKED_PORTS = [
+    int(port) for port in os.getenv("SAFE_DOWNLOAD_BLOCKED_PORTS", "").split(",") if port.strip()
+]
+SAFE_DOWNLOAD_BLOCKED_NETWORKS = [
+    network.strip() for network in os.getenv("SAFE_DOWNLOAD_BLOCKED_NETWORKS", "").split(",") if network.strip()
+]
 
 # 脚本工具存放位置
 BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")

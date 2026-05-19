@@ -182,13 +182,18 @@ export default class TaskDetailSlider extends Vue {
   }
   public async copyCommand(commandStr: string) {
     if (commandStr) {
-      copyText(commandStr, () => {
+      copyText(this.decodeHtmlEntities(commandStr), () => {
         this.$bkMessage({
           theme: 'success',
           message: this.$t('命令复制成功'),
         });
       });
     }
+  }
+  private decodeHtmlEntities(text: string) {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
   }
   public handleDownload(name: string) {
     const element = document.createElement('a');

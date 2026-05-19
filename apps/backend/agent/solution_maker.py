@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import abc
 import base64
 import json
+import shlex
 import time
 import typing
 from pathlib import Path
@@ -31,6 +32,13 @@ from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.files import PathHandler
+
+
+def shell_quote(value: typing.Any) -> str:
+    value = "" if value is None else str(value)
+    if any(char in value for char in ["\x00", "\r", "\n"]):
+        raise ValueError("Control characters are not allowed in shell arguments")
+    return shlex.quote(value)
 
 
 class ExecutionSolutionStepContent:
@@ -246,29 +254,29 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         port_config: typing.Dict[str, typing.Any] = self.host_ap.port_config
         run_cmd_params: typing.List[str] = [
             # 端口信息
-            f'-O {port_config.get("io_port")}',
-            f'-E {port_config.get("file_svr_port")}',
-            f'-A {port_config.get("data_port")}',
-            f'-V {port_config.get("btsvr_thrift_port")}',
-            f'-B {port_config.get("bt_port")}',
-            f'-S {port_config.get("bt_port_start")}',
-            f'-Z {port_config.get("bt_port_end")}',
-            f'-K {port_config.get("tracker_port")}',
+            f'-O {shell_quote(port_config.get("io_port"))}',
+            f'-E {shell_quote(port_config.get("file_svr_port"))}',
+            f'-A {shell_quote(port_config.get("data_port"))}',
+            f'-V {shell_quote(port_config.get("btsvr_thrift_port"))}',
+            f'-B {shell_quote(port_config.get("bt_port"))}',
+            f'-S {shell_quote(port_config.get("bt_port_start"))}',
+            f'-Z {shell_quote(port_config.get("bt_port_end"))}',
+            f'-K {shell_quote(port_config.get("tracker_port"))}',
             # gse 服务信息
-            f'-e "{self.gse_servers_info["bt_file_servers"]}"',
-            f'-a "{self.gse_servers_info["data_servers"]}"',
-            f'-k "{self.gse_servers_info["task_servers"]}"',
+            f'-e {shell_quote(self.gse_servers_info["bt_file_servers"])}',
+            f'-a {shell_quote(self.gse_servers_info["data_servers"])}',
+            f'-k {shell_quote(self.gse_servers_info["task_servers"])}',
             # 文件下载 / 回调服务信息
-            f"-l {self.get_package_url()}",
-            f"-r {self.gse_servers_info['callback_url']}",
+            f"-l {shell_quote(self.get_package_url())}",
+            f"-r {shell_quote(self.gse_servers_info['callback_url'])}",
             # 目标主机信息
-            f"-i {self.host.bk_cloud_id}",
-            f"-I {self.host.inner_ip or self.host.inner_ipv6}",
+            f"-i {shell_quote(self.host.bk_cloud_id)}",
+            f"-I {shell_quote(self.host.inner_ip or self.host.inner_ipv6)}",
             # 安装/下载配置
             f"-T {self.dest_dir}",
             f"-p {self.agent_config['setup_path']}",
-            f'-c "{self.token}"',
-            f"-s {self.pipeline_id}",
+            f"-c {shell_quote(self.token)}",
+            f"-s {shell_quote(self.pipeline_id)}",
         ]
 
         # 系统开启使用密码注册 Windows 服务时，需额外传入 -U -P 参数，用于注册 Windows 服务，详见 setup_agent.bat 脚本
@@ -281,20 +289,22 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
             run_cmd_params.extend(
                 [
-                    f"-U {self.identity_data.account}",
-                    # 注意 -P 参数是base64，其中的 等号(=) 会被吃掉，需要添加 双引号("") 来规避此问题
-                    f'-P "{encrypted_password}"',
+                    f"-U {shell_quote(self.identity_data.account)}",
+                    # 注意 -P 参数是 base64，需整体转义，避免特殊字符被 shell 解释
+                    f"-P {shell_quote(encrypted_password)}",
                 ]
             )
 
         if ExecutionSolutionTools.need_jump_server(self.host):
-            run_cmd_params.extend(["-N PROXY", f"-x {self.get_http_proxy_url()}"])
+            run_cmd_params.extend(["-N PROXY", f"-x {shell_quote(self.get_http_proxy_url())}"])
         else:
             run_cmd_params.extend(["-N SERVER"])
 
         # 新版本 Agent 需要补充构件信息
         if not self.agent_setup_info.is_legacy:
-            run_cmd_params.extend([f"-n {self.agent_setup_info.name}", f"-t {self.agent_setup_info.version}"])
+            run_cmd_params.extend(
+                [f"-n {shell_quote(self.agent_setup_info.name)}", f"-t {shell_quote(self.agent_setup_info.version)}"]
+            )
 
         # 因 bat 脚本逻辑，-R 参数只能放在最后一位
         if self.is_uninstall:
@@ -572,7 +582,8 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     # Including space anywhere inside quotes will ensure that
                     # parameter with semicolon or comma is passed correctly.
                     # 参考：https://stackoverflow.com/questions/17747961/
-                    value = f'{value[:-1]} "'
+                    parsed_value = shlex.split(value or "''")[0]
+                    value = shell_quote(f"{parsed_value} ")
                 run_cmd_params_treated.append(f"{option} {value}")
         else:
             run_cmd_params_treated = list(filter(None, run_cmd_params))
@@ -825,29 +836,29 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         login_ip: str = basic.compressed_ip(self.host.login_ip or self.host.inner_ip or self.host.inner_ipv6)
         run_cmd_params: typing.List[str] = [
             # 文件下载 / 回调服务信息
-            f"-l {self.gse_servers_info['package_url']}",
-            f"-r {self.gse_servers_info['callback_url']}",
+            f"-l {shell_quote(self.gse_servers_info['package_url'])}",
+            f"-r {shell_quote(self.gse_servers_info['callback_url'])}",
             # 安装/下载配置
-            f"-L {settings.DOWNLOAD_PATH}",
-            f'-c "{self.token}"',
-            f"-s {self.pipeline_id}",
+            f"-L {shell_quote(settings.DOWNLOAD_PATH)}",
+            f"-c {shell_quote(self.token)}",
+            f"-s {shell_quote(self.pipeline_id)}",
             # 目标机器主机信息
-            f"-HNT {self.host.node_type}",
-            f"-HIIP {self.host.inner_ip or self.host.inner_ipv6}",
-            f"-HC {self.host.bk_cloud_id}",
-            f"-HOT {self.host.os_type.lower()}",
+            f"-HNT {shell_quote(self.host.node_type)}",
+            f"-HIIP {shell_quote(self.host.inner_ip or self.host.inner_ipv6)}",
+            f"-HC {shell_quote(self.host.bk_cloud_id)}",
+            f"-HOT {shell_quote(self.host.os_type.lower())}",
             # 目标机器登录信息
-            f"--host-identity='{host_identity}'",
-            f"-HP {self.identity_data.port}",
-            f"-HAT {self.identity_data.auth_type}",
-            f"-HA {self.identity_data.account}",
-            f"-HLIP {login_ip}",
+            f"--host-identity={shell_quote(host_identity)}",
+            f"-HP {shell_quote(self.identity_data.port)}",
+            f"-HAT {shell_quote(self.identity_data.auth_type)}",
+            f"-HA {shell_quote(self.identity_data.account)}",
+            f"-HLIP {shell_quote(login_ip)}",
             # 目标机器安装配置
-            f"-HDD '{self.dest_dir}'",
+            f"-HDD {shell_quote(self.dest_dir)}",
             # 代理机器配置
-            f"-HPP '{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}'",
+            f"-HPP {shell_quote(settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT)}",
             # 代理机器主机信息
-            f"-I {self.gse_servers_info['jump_server'].inner_ip or self.gse_servers_info['jump_server'].inner_ipv6}",
+            f"-I {shell_quote(self.gse_servers_info['jump_server'].inner_ip or self.gse_servers_info['jump_server'].inner_ipv6)}",
         ]
 
         # 通道特殊配置
@@ -855,7 +866,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             __, upstream_servers = self.install_channel
             channel_proxy_address = upstream_servers.get("channel_proxy_address", None)
             if channel_proxy_address:
-                run_cmd_params.extend([f"-CPA '{channel_proxy_address}'"])
+                run_cmd_params.extend([f"-CPA {shell_quote(channel_proxy_address)}"])
 
         return list(filter(None, run_cmd_params))
 

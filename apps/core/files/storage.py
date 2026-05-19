@@ -83,39 +83,43 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
     def _is_safe_path(self, path):
         """验证路径是否安全"""
-        # 检查路径是否在允许的目录列表中
-        allowed_paths = [self.location]
+        normalized_path = os.path.normpath(path).replace("\\", "/")
+        if not os.path.isabs(normalized_path):
+            return not (
+                normalized_path == ".."
+                or normalized_path.startswith("../")
+                or "/../" in normalized_path
+            )
 
-        # 可以添加其他允许的路径前缀
+        candidate_path = os.path.realpath(normalized_path)
+        allowed_paths = [self.location]
         if hasattr(settings, "ALLOWED_BKREPO_PATHS"):
             allowed_paths.extend(settings.ALLOWED_BKREPO_PATHS)
 
-        return any(path.startswith(allowed_path) for allowed_path in allowed_paths)
+        for allowed_path in filter(None, allowed_paths):
+            real_allowed_path = os.path.realpath(allowed_path)
+            if os.path.commonpath([real_allowed_path, candidate_path]) == real_allowed_path:
+                return True
+        return False
 
     def _normalize_name(self, name):
         """
         规范化文件名，防止路径遍历攻击
         """
-        # 移除路径中的点和双点
         name = os.path.normpath(name).replace("\\", "/")
-
-        # 确保路径不以斜杠开头
-        if name.startswith("/"):
-            name = name[1:]
-
+        if os.path.isabs(name):
+            if not self._is_safe_path(name):
+                raise SuspiciousFileOperation(f"Path '{name}' is not allowed")
+            return name.lstrip("/")
+        if not self._is_safe_path(name):
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
         return name
 
     def save(self, name, content, max_length=None):
         """
         重写save方法，增加路径安全检查
         """
-        # 规范化名称
         name = self._normalize_name(name)
-
-        # 验证路径安全性
-        if not self._is_safe_path(name):
-            raise SuspiciousFileOperation(f"Path '{name}' is not allowed")
-
         return super().save(name, content, max_length)
 
     def exists(self, name):
@@ -189,6 +193,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         directory_permissions_mode=None,
         file_overwrite=None,
     ):
+        location = location or settings.PUBLIC_PATH
         FileSystemStorage.__init__(
             self,
             location=location,
@@ -208,7 +213,29 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     # safe_join 仅允许项目根目录以内的读写，具体参考 -> django.utils._os safe_join
     # 本项目的读写控制不存在用户行为，保留safe_mode成员变量，便于切换
     def path(self, name):
-        return os.path.join(self.location, name)
+        try:
+            return safe_join(self.location, name)
+        except ValueError:
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+
+    def _normalize_safe_name(self, name: str) -> str:
+        name = os.path.normpath(name).replace("\\", "/")
+        if os.path.isabs(name):
+            candidate_path = os.path.realpath(name)
+            allowed_roots = [
+                getattr(settings, "DOWNLOAD_PATH", ""),
+                getattr(settings, "UPLOAD_PATH", ""),
+                getattr(settings, "EXPORT_PATH", ""),
+            ]
+            allowed_roots.extend(getattr(settings, "ALLOWED_FILE_SYSTEM_STORAGE_PATHS", []))
+            for root in filter(None, allowed_roots):
+                real_root = os.path.realpath(root)
+                if os.path.commonpath([real_root, candidate_path]) == real_root:
+                    return os.path.relpath(candidate_path, self.location).replace("\\", "/")
+            raise SuspiciousFileOperation(f"Absolute path '{name}' is not allowed")
+        if name.startswith("../") or "/../" in name or name == "..":
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+        return name
 
     def get_file_md5(self, file_name: str) -> str:
         if not os.path.isfile(file_name):
@@ -218,10 +245,10 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
 
     @cached_property
     def location(self):
-        """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
 
     def _save(self, name, content):
+        name = self._normalize_safe_name(name)
         # 如果允许覆盖，保存前删除文件
         if self.file_overwrite:
             self.delete(name)
@@ -260,7 +287,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
 
 
 # 缓存最基础的Storage
-_STORAGE_OBJ_CACHE: [str, Storage] = {}
+_STORAGE_OBJ_CACHE: Dict[str, Storage] = {}
 
 
 def cache_storage_obj(get_storage_func: Callable[[str, Dict], Storage]):

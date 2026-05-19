@@ -17,6 +17,7 @@ import typing
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants
+from apps.utils.files import safe_extract
 
 from . import base
 
@@ -37,7 +38,7 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
         with tarfile.open(name=initial_artifact_local_path) as tf:
-            tf.extractall(path=extract_dir)
+            safe_extract(tf, path=extract_dir)
 
         extract_dir: str = os.path.join(extract_dir, self.BASE_PKG_DIR)
         if not os.path.exists(extract_dir):
@@ -62,7 +63,7 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
         # 执行解压
         with self.storage.open(name=base_agent_pkg_path, mode="rb") as tf_from_storage:
             with tarfile.open(fileobj=tf_from_storage) as tf:
-                tf.extractall(extract_dir)
+                safe_extract(tf, path=extract_dir)
                 logger.info(f"file -> {base_agent_pkg_path} extract to dir -> {extract_dir} success.")
 
         # 按正则规范构建 Proxy 安装包的目录
