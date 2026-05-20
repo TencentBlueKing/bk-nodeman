@@ -12,7 +12,6 @@ import datetime
 import re
 import traceback
 
-import requests
 from django.http import Http404
 
 from apps.node_man.models import AccessPoint, GlobalSettings
@@ -22,6 +21,7 @@ from apps.node_man.serializers.plugin import (
     ProcessPackageSerializer,
 )
 from apps.utils import APIModel
+from apps.utils.security import safe_requests_get
 from common.log import logger
 
 Multi_backslash_pattern = re.compile(r"\\+")
@@ -117,7 +117,7 @@ def read_remote_file_content(remote_url):
     # os.environ["http_proxy"] = ""
     # os.environ["https_proxy"] = ""
     try:
-        response = requests.get(remote_url, proxies={})
+        response = safe_requests_get(remote_url)
     except Exception:
         raise ValueError("无法通过内网URL {}找到初始化文件".format(remote_url))
 

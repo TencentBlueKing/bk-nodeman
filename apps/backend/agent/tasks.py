@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import shlex
 import time
 import traceback
 
@@ -21,6 +22,27 @@ from apps.utils.basic import suffix_slash
 from common.api import JobApi
 from common.log import logger
 from pipeline.log.models import LogEntry
+
+
+def _quote_job_script_param(value):
+    return shlex.quote(str(value))
+
+
+def build_collect_log_script_param(login_ip, port, account, identity, download_url):
+    return " ".join(
+        [
+            "-l",
+            _quote_job_script_param(login_ip),
+            "-p",
+            _quote_job_script_param(port),
+            "-a",
+            _quote_job_script_param(account),
+            "-i",
+            _quote_job_script_param(identity),
+            "-d",
+            _quote_job_script_param(download_url),
+        ]
+    )
 
 
 def collect_log_exception_handler(collect_log_func):
@@ -96,7 +118,7 @@ else:
             os_type=host.os_type,
             cmd_str=cmd_str,
         )
-        params = "-l {login_ip} -p {port} -a {account} -i {identity} -d {download_url}".format(
+        params = build_collect_log_script_param(
             login_ip=host.login_ip or host.inner_ip or host.inner_ipv6,
             port=host.identity.port,
             account=host.identity.account,

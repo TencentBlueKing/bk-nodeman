@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import argparse
+import shlex
 from typing import Optional, Type
 from unittest.mock import patch
 
-from apps.backend.agent.tasks import collect_log
+from apps.backend.agent.tasks import build_collect_log_script_param, collect_log
 from apps.backend.tests.components.collections.agent_new import utils
 from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.log.models import LogEntry
@@ -41,3 +43,26 @@ class CollectLogTestCase(CustomBaseTestCase):
             collect_log(host.bk_host_id, node_id)
             log_result = list(LogEntry.objects.all().values_list(node_id, flat=True))
             self.assertEqual(set(log_result), {node_id})
+
+    def test_build_collect_log_script_param_quote_sensitive_values(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-l", "--login-ip", type=str)
+        parser.add_argument("-p", "--port", type=int)
+        parser.add_argument("-a", "--account", type=str)
+        parser.add_argument("-i", "--identity", type=str)
+        parser.add_argument("-d", "--download-url", type=str)
+
+        params = build_collect_log_script_param(
+            login_ip="1.1.1.1; touch /tmp/pwned",
+            port=22,
+            account="root user; whoami",
+            identity="pa ss;$(id)\nnext-line",
+            download_url="http://example.com/pkg?name=a b&x=$(id)",
+        )
+        args = parser.parse_args(shlex.split(params))
+
+        self.assertEqual(args.login_ip, "1.1.1.1; touch /tmp/pwned")
+        self.assertEqual(args.port, 22)
+        self.assertEqual(args.account, "root user; whoami")
+        self.assertEqual(args.identity, "pa ss;$(id)\nnext-line")
+        self.assertEqual(args.download_url, "http://example.com/pkg?name=a b&x=$(id)")

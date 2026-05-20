@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import re
+from typing import Any
 
 from django.conf import settings
 from django.http import Http404, JsonResponse
@@ -29,6 +31,30 @@ from apps.utils.drf import (
 )
 from common.log import logger
 
+SENSITIVE_FIELD_RE = re.compile(r"(password|passwd|pwd|secret|token|key|authorization|cookie|bk_app_secret)", re.I)
+MASK_VALUE = "***"
+
+
+def mask_sensitive_data(data: Any):
+    if isinstance(data, bytes):
+        try:
+            data = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return "<binary>"
+    if isinstance(data, str):
+        try:
+            return mask_sensitive_data(json.loads(data))
+        except (TypeError, ValueError):
+            return SENSITIVE_FIELD_RE.sub(MASK_VALUE, data)
+    if isinstance(data, dict):
+        return {
+            key: MASK_VALUE if SENSITIVE_FIELD_RE.search(str(key)) else mask_sensitive_data(value)
+            for key, value in data.items()
+        }
+    if isinstance(data, (list, tuple)):
+        return [mask_sensitive_data(item) for item in data]
+    return data
+
 
 class ApiMixin(GenericViewSet):
     """
@@ -41,7 +67,11 @@ class ApiMixin(GenericViewSet):
 
     def initialize_request(self, request, *args, **kwargs):
         # 实体是为文件时body省略
-        body = "File" if "multipart/form-data" in request.headers.get("Content-Type", "") else request.body
+        body = (
+            "File"
+            if "multipart/form-data" in request.headers.get("Content-Type", "")
+            else mask_sensitive_data(request.body)
+        )
         bk_username = (
             local.get_username_from_request_or_none(self.request) or local.get_request_username_or_local_app_code()
         )
@@ -189,7 +219,8 @@ def custom_exception_handler(exc, context):
             request_params = request.data
 
     logger.error(
-        """捕获未处理异常, 请求URL->[%s], 请求方法->[%s] 请求参数->[%s]""" % (request.path, request.method, json.dumps(request_params))
+        """捕获未处理异常, 请求URL->[%s], 请求方法->[%s] 请求参数->[%s]"""
+        % (request.path, request.method, json.dumps(mask_sensitive_data(request_params)))
     )
     # 专门处理 404 异常，直接返回前端，前端处理
     if isinstance(exc, Http404):
@@ -225,7 +256,11 @@ def custom_exception_handler(exc, context):
     request = context["request"]
     logger.error(
         """捕获未处理异常, 请求URL->[%s], 请求方法->[%s] 请求参数->[%s]"""
-        % (request.path, request.method, json.dumps(request.query_params if request.method == "GET" else request.data))
+        % (
+            request.path,
+            request.method,
+            json.dumps(mask_sensitive_data(request.query_params if request.method == "GET" else request.data)),
+        )
     )
     return JsonResponse(_error(500, _("系统错误，请联系管理员")))
 

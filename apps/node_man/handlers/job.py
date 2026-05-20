@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import html
 import logging
 import operator
 from functools import reduce
@@ -39,6 +40,30 @@ from apps.utils.local import get_request_username, get_tenant_id
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
 from common.api.exception import DataAPIException
+
+
+def escape_html_response(data: Any) -> Any:
+    if isinstance(data, str):
+        return html.escape(data)
+    if isinstance(data, list):
+        return [escape_html_response(item) for item in data]
+    if isinstance(data, tuple):
+        return tuple(escape_html_response(item) for item in data)
+    if isinstance(data, dict):
+        return {key: escape_html_response(value) for key, value in data.items()}
+    return data
+
+
+def escape_html_tags_response(data: Any) -> Any:
+    if isinstance(data, str):
+        return data.replace("<", "&lt;")
+    if isinstance(data, list):
+        return [escape_html_tags_response(item) for item in data]
+    if isinstance(data, tuple):
+        return tuple(escape_html_tags_response(item) for item in data)
+    if isinstance(data, dict):
+        return {key: escape_html_tags_response(value) for key, value in data.items()}
+    return data
 
 logger = logging.getLogger("app")
 
@@ -141,7 +166,7 @@ class JobHandler(APIModel):
             }
         )
 
-        return command_solutions
+        return escape_html_tags_response(command_solutions)
 
     def list(self, params: dict, username: str):
         """
@@ -918,7 +943,7 @@ class JobHandler(APIModel):
                             "finish_time": step.get("finish_time"),
                         }
                     )
-        return logs
+        return escape_html_response(logs)
 
     def get_log(self, instance_id: str) -> list:
         """

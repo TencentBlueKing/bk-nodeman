@@ -63,6 +63,8 @@ from apps.prometheus.models import (
 )
 from apps.utils import basic, files, orm, translation
 from apps.utils.cache import class_member_cache
+from apps.utils.security import is_safe_url
+from apps.utils.security import safe_requests_get
 from common.log import logger
 from env.constants import GseVersion
 from pipeline.parser import PipelineParser
@@ -186,6 +188,25 @@ class GlobalSettings(models.Model):
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
         # 租户 bk_username 映射
         TENANT_BK_USERNAME_MAP = "TENANT_BK_USERNAME_MAP"
+        # 更新订阅实例长度
+        UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
+        # 禁用的订阅
+        DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
+        # 禁用的订阅
+        SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE = "SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE"
+        # 接入点url端口黑名单
+        AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
+        AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
+        # 下载及远程请求URL网段黑名单，默认不限制，配置样例：["127.0.0.0/8", "169.254.0.0/16"]
+        SAFE_URL_BLOCKED_NETWORKS = "SAFE_URL_BLOCKED_NETWORKS"
+        # 注入主机集群模块名称业务白名单
+        INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST = "INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST"
+        # 无需排队执行的订阅白名单
+        UNQUEUED_SUBSCRIPTION_WHITELIST = "UNQUEUED_SUBSCRIPTION_WHITELIST"
+        AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY = "AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY"
+        NGINX_HTTP_WHITELIST = "NGINX_HTTP_WHITELIST"
+        POWERSHELL_CMD_WHITELIST_BIZ = "POWERSHELL_CMD_WHITELIST_BIZ"
+        PUSH_PY311_TO_PROXY = "PUSH_PY311_TO_PROXY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"), default=dict)
@@ -644,7 +665,7 @@ class AccessPoint(models.Model):
             return {"result": False, "err_msg": _err_msg}
 
         try:
-            response = requests.get(url=f"{callback_url}/version")
+            response = safe_requests_get(url=f"{callback_url}/version")
             version_info = json.loads(response.content)
         except Exception as exc:
             return _raise_exc_or_return(_("回调地址请求失败，报错信息 -> {exc}").format(exc=exc))
@@ -687,7 +708,7 @@ class AccessPoint(models.Model):
             # TODO 检测方案待讨论确认
             download_url = f"{url}/setup_agent.sh"
             try:
-                response = requests.get(download_url, timeout=2)
+                response = safe_requests_get(download_url, timeout=2)
             except requests.RequestException:
                 _logs.append(
                     {
@@ -1210,7 +1231,7 @@ class Packages(models.Model):
         # 文件的读取是从指定数据源（NFS或对象存储），可切换源模式，不直接使用原生open
         with storage.open(name=file_path, mode="rb") as tf_from_storage:
             with tarfile.open(fileobj=tf_from_storage) as tf:
-                tf.extractall(path=package_tmp_dir)
+                files.safe_extract(tf, path=package_tmp_dir)
 
         # 遍历插件包的一级目录，找出 PluginExternalTypePrefix 匹配的文件夹并加入到指定的解压目录
         # 一般来说，插件包是具体到机器操作系统类型的，所以 package_tmp_dir 下基本只有一个目录

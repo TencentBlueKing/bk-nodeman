@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import os
+import re
 import time
+from html import escape
 from typing import Dict
 
 import ujson as json
@@ -37,6 +39,25 @@ from apps.node_man.models import Host, JobSubscriptionInstanceMap
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
+
+REPORT_LOG_MAX_LENGTH = 4096
+REPORT_LOG_TEXT_FIELDS = {"log", "step", "level", "status", "prefix"}
+REPORT_LOG_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _sanitize_report_log_value(value):
+    value = "" if value is None else str(value)
+    value = REPORT_LOG_CONTROL_CHAR_RE.sub("", value)
+    value = value[:REPORT_LOG_MAX_LENGTH]
+    return escape(value, quote=True)
+
+
+def _sanitize_report_log(log: Dict) -> Dict:
+    sanitized_log = dict(log)
+    for field in REPORT_LOG_TEXT_FIELDS:
+        if field in sanitized_log:
+            sanitized_log[field] = _sanitize_report_log_value(sanitized_log[field])
+    return sanitized_log
 
 
 # 记录日志并设置过期时间
@@ -144,7 +165,7 @@ def report_log(request):
 
     # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
     name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=decrypted_token["inst_id"])
-    json_dumps_logs = [json.dumps(log) for log in data["logs"]]
+    json_dumps_logs = [json.dumps(_sanitize_report_log(log)) for log in data["logs"]]
     # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -> api-> Redis -log-> DB」 上的问题
     LPUSH_AND_EXPIRE_FUNC(keys=[name], args=[constants.TimeUnit.DAY] + json_dumps_logs)
     return JsonResponse({})

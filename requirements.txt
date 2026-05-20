@@ -43,7 +43,7 @@ drf-yasg==1.21.8
 dacite==1.8.1
 
 # pipeline
-ujson==5.9.0
+ujson==5.12.0
 pyparsing==3.2.0
 redis==5.0.3
 django-timezone-field==7.0
@@ -107,7 +107,7 @@ opentelemetry-instrumentation-requests==0.50b0
 bk-monitor-report==1.2.1
 
 apigw-manager[cryptography]==4.1.0
-cryptography==42.0.5
+cryptography==46.0.6
 
 # notice
 bk-notice-sdk==1.4.0

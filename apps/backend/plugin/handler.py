@@ -66,6 +66,7 @@ class PluginHandler:
         :return:
         """
         storage = get_storage()
+        origin_file_name = os.path.basename(origin_file_name)
         # file_path 不为空表示文件已在项目管理的对象存储上，此时仅需校验md5，减少文件IO
         if file_path:
             if not storage.exists(name=file_path):

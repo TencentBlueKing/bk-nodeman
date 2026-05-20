@@ -14,11 +14,14 @@ import ntpath
 import os
 import posixpath
 import stat
+import tarfile
 import uuid
 from typing import IO, Any, Callable, List, Optional
-from urllib.request import urlopen
+
+from django.conf import settings
 
 from apps.node_man import constants
+from apps.utils.security import safe_urlopen
 
 
 class FileOpen:
@@ -89,6 +92,20 @@ def md5sum(name: str = None, file_obj: Optional[IO[Any]] = None, mode: str = "rb
     return hash_md5.hexdigest()
 
 
+def safe_extract(tar: tarfile.TarFile, path: str = ".", members=None) -> None:
+    base_path = os.path.realpath(path)
+    for member in tar.getmembers():
+        member_name = member.name.replace("\\", "/")
+        if member_name.startswith("/") or member_name.startswith("../") or "/../" in member_name:
+            raise ValueError(f"Illegal tar member path: {member.name}")
+        if member.islnk() or member.issym():
+            raise ValueError(f"Link tar member is not allowed: {member.name}")
+        target_path = os.path.realpath(os.path.join(base_path, member_name))
+        if os.path.commonpath([base_path, target_path]) != base_path:
+            raise ValueError(f"Tar member escapes target directory: {member.name}")
+    tar.extractall(path=path, members=members)
+
+
 def download_file(
     url: str,
     name: str = None,
@@ -108,7 +125,15 @@ def download_file(
     """
 
     # request 的 stream=True 没有起作用，采用 urlopen 进行流式下载，避免 OOM
-    with urlopen(url=url) as rfs:
+    allowed_hosts = getattr(settings, "SAFE_DOWNLOAD_ALLOWED_HOSTS", None)
+    blocked_ports = getattr(settings, "SAFE_DOWNLOAD_BLOCKED_PORTS", None)
+    blocked_networks = getattr(settings, "SAFE_DOWNLOAD_BLOCKED_NETWORKS", None)
+    with safe_urlopen(
+        url=url,
+        allowed_hosts=allowed_hosts,
+        blocked_ports=blocked_ports,
+        blocked_networks=blocked_networks,
+    ) as rfs:
         with FileOpen(name=name, file_obj=file_obj, mode=mode, closed=closed) as local_fs:
             for chunk in iter(lambda: rfs.read(8192), b""):
                 if not chunk:
@@ -134,7 +159,7 @@ class PathHandler:
     """
 
     # 文件处理模块
-    path_handler: [ntpath, posixpath]
+    path_handler: Any
 
     def __init__(self, os_type: str):
         if os_type.lower() == constants.OsType.WINDOWS.lower():

@@ -13,14 +13,15 @@ from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.files import File
 from django.core.files.storage import FileSystemStorage, Storage, get_storage_class
+from django.utils._os import safe_join
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
 
 from apps.utils.basic import filter_values
 from apps.utils.files import md5sum
-from common.api import CCApi
 
 from . import constants
 from .base import BaseStorage
@@ -55,6 +56,7 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         self.username = username or settings.BKREPO_USERNAME
         self.password = password or settings.BKREPO_PASSWORD
         self.project_id = project_id or settings.BKREPO_PROJECT
+        
         self.bucket = bucket or settings.BKREPO_BUCKET
         self.endpoint_url = endpoint_url or settings.BKREPO_ENDPOINT_URL
         self.file_overwrite = file_overwrite or settings.FILE_OVERWRITE
@@ -73,7 +75,71 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         )
 
     def path(self, name):
-        raise NotImplementedError()
+        """
+        返回文件的完整路径
+        注意：制品库存储通常不需要此方法，但为了安全起见，我们实现它
+        """
+        # 如果是相对路径，拼接根路径
+        if not name.startswith("/"):
+            return safe_join(self.location, name)
+        # 如果是绝对路径，直接返回（需要确保路径安全）
+        if self._is_safe_path(name):
+            return name
+        raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+
+    def _is_safe_path(self, path):
+        """验证路径是否安全"""
+        normalized_path = os.path.normpath(path).replace("\\", "/")
+        if not os.path.isabs(normalized_path):
+            return not (
+                normalized_path == ".."
+                or normalized_path.startswith("../")
+                or "/../" in normalized_path
+            )
+        candidate_path = os.path.realpath(normalized_path)
+        allowed_paths = [self.location]
+        if hasattr(settings, "ALLOWED_BKREPO_PATHS"):
+            allowed_paths.extend(settings.ALLOWED_BKREPO_PATHS)
+
+        for allowed_path in filter(None, allowed_paths):
+            real_allowed_path = os.path.realpath(allowed_path)
+            if os.path.commonpath([real_allowed_path, candidate_path]) == real_allowed_path:
+                return True
+        return False
+
+    def _normalize_name(self, name):
+        """
+        规范化文件名，防止路径遍历攻击
+        """
+        name = os.path.normpath(name).replace("\\", "/")
+        if os.path.isabs(name):
+            if not self._is_safe_path(name):
+                raise SuspiciousFileOperation(f"Path '{name}' is not allowed")
+            return name.lstrip("/")
+        if not self._is_safe_path(name):
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+        return name
+
+    def save(self, name, content, max_length=None):
+        """
+        重写save方法，增加路径安全检查
+        """
+        name = self._normalize_name(name)
+        return super().save(name, content, max_length)
+
+    def exists(self, name):
+        """
+        重写exists方法，规范化名称
+        """
+        name = self._normalize_name(name)
+        return super().exists(name)
+
+    def delete(self, name):
+        """
+        重写delete方法，规范化名称
+        """
+        name = self._normalize_name(name)
+        return super().delete(name)
 
     def get_file_md5(self, file_name: str) -> str:
         if not self.exists(name=file_name):
@@ -102,10 +168,9 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     ) -> List[Dict[str, Any]]:
 
         # 获取或创建文件源
-        # bk_biz_id: int = (
-        #     settings.TENANT_BLUEKING_SCOPE_ID if settings.ENABLE_MULTI_TENANT_MODE else settings.BLUEKING_BIZ_ID
-        # )
-        bk_biz_id = self.get_biz_set_id()
+        bk_biz_id: int = (
+            settings.TENANT_BLUEKING_SCOPE_ID if settings.ENABLE_MULTI_TENANT_MODE else settings.BLUEKING_BIZ_ID
+        )
         file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
             bk_biz_id=bk_biz_id,
             storage_type=self.storage_type,
@@ -131,18 +196,6 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
         return file_source_with_source_info_list
 
-    @staticmethod
-    def get_biz_set_id():
-        resp = CCApi.list_business_set(
-            {"no_request": True}, tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default"
-        )
-        biz_sets = resp.get("info", [])
-        for biz_set in biz_sets:
-            bk_scope = biz_set.get("bk_scope", {})
-            if bk_scope.get("match_all") is True:
-                return biz_set.get("bk_biz_set_id")
-        return None
-
 
 @deconstructible
 class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
@@ -159,6 +212,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         directory_permissions_mode=None,
         file_overwrite=None,
     ):
+        location = location or settings.PUBLIC_PATH
         FileSystemStorage.__init__(
             self,
             location=location,
@@ -178,7 +232,29 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     # safe_join 仅允许项目根目录以内的读写，具体参考 -> django.utils._os safe_join
     # 本项目的读写控制不存在用户行为，保留safe_mode成员变量，便于切换
     def path(self, name):
-        return os.path.join(self.location, name)
+        try:
+            return safe_join(self.location, name)
+        except ValueError:
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+
+    def _normalize_safe_name(self, name: str) -> str:
+        name = os.path.normpath(name).replace("\\", "/")
+        if os.path.isabs(name):
+            candidate_path = os.path.realpath(name)
+            allowed_roots = [
+                getattr(settings, "DOWNLOAD_PATH", ""),
+                getattr(settings, "UPLOAD_PATH", ""),
+                getattr(settings, "EXPORT_PATH", ""),
+            ]
+            allowed_roots.extend(getattr(settings, "ALLOWED_FILE_SYSTEM_STORAGE_PATHS", []))
+            for root in filter(None, allowed_roots):
+                real_root = os.path.realpath(root)
+                if os.path.commonpath([real_root, candidate_path]) == real_root:
+                    return os.path.relpath(candidate_path, self.location).replace("\\", "/")
+            raise SuspiciousFileOperation(f"Absolute path '{name}' is not allowed")
+        if name.startswith("../") or "/../" in name or name == "..":
+            raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+        return name
 
     def get_file_md5(self, file_name: str) -> str:
         if not os.path.isfile(file_name):
@@ -188,7 +264,6 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
 
     @cached_property
     def location(self):
-        """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
 
     def save(self, name, content, max_length=None):
@@ -202,6 +277,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         return name
 
     def _save(self, name, content):
+        name = self._normalize_safe_name(name)
         # 如果允许覆盖，保存前删除文件
         if self.file_overwrite:
             self.delete(name)
@@ -240,7 +316,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
 
 
 # 缓存最基础的Storage
-_STORAGE_OBJ_CACHE: [str, Storage] = {}
+_STORAGE_OBJ_CACHE: Dict[str, Storage] = {}
 
 
 def cache_storage_obj(get_storage_func: Callable[[str, Dict], Storage]):

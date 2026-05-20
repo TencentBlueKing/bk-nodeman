@@ -197,14 +197,10 @@ def is_within_directory(directory, target):
 
 
 def safe_extract(tar, path=".", members=None):
-    for member in tar.getmembers():
-        # 检验软连接（新增）
-        if member.islnk() or member.issym():
-            raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=member.name))
-        member_path = os.path.join(path, member.name)
-        if not is_within_directory(path, member_path):
-            raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=member.name))
-    tar.extractall(path=path, members=members)
+    try:
+        files.safe_extract(tar=tar, path=path, members=members)
+    except ValueError as exc:
+        raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=exc))
 
 
 def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
