@@ -37,6 +37,7 @@ from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, to_int_or_default
 from apps.utils.local import get_request_username
+from apps.utils.security import sanitize_anchor_only_html_response
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
 from common.api.exception import DataAPIException
@@ -950,7 +951,7 @@ class JobHandler(APIModel):
                             "finish_time": step.get("finish_time"),
                         }
                     )
-        return escape_html_response(logs)
+        return sanitize_anchor_only_html_response(logs)
 
     def get_log(self, instance_id: str) -> list:
         """

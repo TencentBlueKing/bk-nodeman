@@ -36,6 +36,7 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, models
 from apps.node_man.handlers import base_info
 from apps.node_man.models import Host, JobSubscriptionInstanceMap
+from apps.utils.security import sanitize_anchor_only_html
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
@@ -52,11 +53,22 @@ def _sanitize_report_log_value(value):
     return escape(value, quote=True)
 
 
+def _sanitize_report_log_content(value):
+    value = "" if value is None else str(value)
+    value = REPORT_LOG_CONTROL_CHAR_RE.sub("", value)
+    value = value[:REPORT_LOG_MAX_LENGTH]
+    return sanitize_anchor_only_html(value)
+
+
 def _sanitize_report_log(log: Dict) -> Dict:
     sanitized_log = dict(log)
     for field in REPORT_LOG_TEXT_FIELDS:
         if field in sanitized_log:
-            sanitized_log[field] = _sanitize_report_log_value(sanitized_log[field])
+            sanitized_log[field] = (
+                _sanitize_report_log_content(sanitized_log[field])
+                if field == "log"
+                else _sanitize_report_log_value(sanitized_log[field])
+            )
     return sanitized_log
 
 
