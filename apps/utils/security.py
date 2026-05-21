@@ -64,7 +64,9 @@ class AnchorOnlyHTMLSanitizer(HTMLParser):
         is_allowed = self.is_safe_href(href)
         self.anchor_stack.append(is_allowed)
         if is_allowed:
-            self.fragments.append(f'<a href="{escape(href, quote=True)}">')
+            self.fragments.append(
+                f'<a href="{escape(href, quote=True)}" target="_blank" rel="noopener noreferrer">'
+            )
         else:
             self.fragments.append(self.escape_tag(tag, attrs))
 
