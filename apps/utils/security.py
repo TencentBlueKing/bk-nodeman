@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 
 import ipaddress
 import socket
-from typing import Iterable, Optional, Sequence, Tuple
+from html import escape
+from html.parser import HTMLParser
+from typing import Any, Iterable, Optional, Sequence, Tuple
 from urllib.parse import urlparse, urlunparse
 from urllib.request import HTTPRedirectHandler, build_opener
 
@@ -27,8 +29,93 @@ class NoRedirectHandler(HTTPRedirectHandler):
         return None
 
 
+class AnchorOnlyHTMLSanitizer(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.fragments = []
+        self.anchor_stack = []
+
+    @staticmethod
+    def is_safe_href(href: str) -> bool:
+        parsed = urlparse(href)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+    @staticmethod
+    def escape_tag(tag: str, attrs: Sequence[Tuple[str, Optional[str]]] = None, closing: bool = False) -> str:
+        if closing:
+            return escape(f"</{tag}>", quote=True)
+        attr_text = "".join(
+            f' {name}' if value is None else f' {name}="{value}"'
+            for name, value in (attrs or [])
+        )
+        return escape(f"<{tag}{attr_text}>", quote=True)
+
+    def handle_starttag(self, tag: str, attrs: Sequence[Tuple[str, Optional[str]]]):
+        if tag.lower() != "a":
+            self.fragments.append(self.escape_tag(tag, attrs))
+            return
+
+        href = ""
+        for name, value in attrs:
+            if name.lower() == "href" and value:
+                href = value.strip()
+                break
+
+        is_allowed = self.is_safe_href(href)
+        self.anchor_stack.append(is_allowed)
+        if is_allowed:
+            self.fragments.append(f'<a href="{escape(href, quote=True)}">')
+        else:
+            self.fragments.append(self.escape_tag(tag, attrs))
+
+    def handle_endtag(self, tag: str):
+        if tag.lower() != "a":
+            self.fragments.append(self.escape_tag(tag, closing=True))
+            return
+
+        is_allowed = self.anchor_stack.pop() if self.anchor_stack else False
+        self.fragments.append("</a>" if is_allowed else self.escape_tag(tag, closing=True))
+
+    def handle_data(self, data: str):
+        self.fragments.append(escape(data, quote=True))
+
+    def handle_entityref(self, name: str):
+        self.fragments.append(f"&{name};")
+
+    def handle_charref(self, name: str):
+        self.fragments.append(f"&#{name};")
+
+    def handle_comment(self, data: str):
+        self.fragments.append(escape(f"<!--{data}-->", quote=True))
+
+    def handle_decl(self, decl: str):
+        self.fragments.append(escape(f"<!{decl}>", quote=True))
+
+    def get_html(self) -> str:
+        return "".join(self.fragments)
+
+
 _PRIVATE_HOSTS = {"localhost", "localhost.localdomain"}
 SAFE_URL_BLOCKED_NETWORKS_KEY = "SAFE_URL_BLOCKED_NETWORKS"
+
+
+def sanitize_anchor_only_html(value: Any) -> str:
+    sanitizer = AnchorOnlyHTMLSanitizer()
+    sanitizer.feed("" if value is None else str(value))
+    sanitizer.close()
+    return sanitizer.get_html()
+
+
+def sanitize_anchor_only_html_response(data: Any) -> Any:
+    if isinstance(data, str):
+        return sanitize_anchor_only_html(data)
+    if isinstance(data, list):
+        return [sanitize_anchor_only_html_response(item) for item in data]
+    if isinstance(data, tuple):
+        return tuple(sanitize_anchor_only_html_response(item) for item in data)
+    if isinstance(data, dict):
+        return {key: sanitize_anchor_only_html_response(value) for key, value in data.items()}
+    return data
 
 
 def _get_global_blocked_networks() -> Sequence[str]:
