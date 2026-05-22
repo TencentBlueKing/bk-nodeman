@@ -10,6 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import io
 import os
+import shutil
+import tarfile
+import tempfile
 
 from django.conf import settings
 
@@ -43,3 +46,62 @@ class TestFiles(CustomBaseTestCase):
         self.assertRaises(
             NotADirectoryError, files.fetch_file_paths_from_dir, os.path.join(settings.PROJECT_ROOT, "readme.md")
         )
+
+    def _build_malicious_tar(self, member_name: str, link_name: str = "", linktype=tarfile.REGTYPE) -> io.BytesIO:
+        """Build a tar archive in memory with a single attacker-controlled member."""
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w") as tf:
+            info = tarfile.TarInfo(name=member_name)
+            info.type = linktype
+            if linktype in (tarfile.LNKTYPE, tarfile.SYMTYPE):
+                info.linkname = link_name
+                tf.addfile(info)
+            else:
+                payload = b"pwn"
+                info.size = len(payload)
+                tf.addfile(info, io.BytesIO(payload))
+        buf.seek(0)
+        return buf
+
+    def test_safe_extract_blocks_path_traversal(self):
+        """Regression test: tar members that escape the target directory must be rejected."""
+        bad_names = [
+            "../evil",
+            "/etc/passwd",
+            "..",
+            "a/..",
+            "a/../../etc/passwd",
+            "a/./../../evil",
+        ]
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            for name in bad_names:
+                buf = self._build_malicious_tar(name)
+                with tarfile.open(fileobj=buf, mode="r") as tf:
+                    with self.assertRaises(ValueError, msg=f"member {name!r} should be rejected"):
+                        files.safe_extract(tf, path=tmp_dir)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_safe_extract_blocks_links(self):
+        """Hard / symbolic link members must be rejected to prevent indirect traversal."""
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            for linktype in (tarfile.LNKTYPE, tarfile.SYMTYPE):
+                buf = self._build_malicious_tar("inner", link_name="../../etc/passwd", linktype=linktype)
+                with tarfile.open(fileobj=buf, mode="r") as tf:
+                    with self.assertRaises(ValueError):
+                        files.safe_extract(tf, path=tmp_dir)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_safe_extract_normal_archive(self):
+        """A well-formed archive must extract successfully."""
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            buf = self._build_malicious_tar("sub/hello.txt")
+            with tarfile.open(fileobj=buf, mode="r") as tf:
+                files.safe_extract(tf, path=tmp_dir)
+            self.assertTrue(os.path.isfile(os.path.join(tmp_dir, "sub", "hello.txt")))
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)

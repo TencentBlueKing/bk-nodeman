@@ -93,17 +93,42 @@ def md5sum(name: str = None, file_obj: Optional[IO[Any]] = None, mode: str = "rb
 
 
 def safe_extract(tar: tarfile.TarFile, path: str = ".", members=None) -> None:
+    """
+    Safely extract a tar archive, preventing path traversal (CVE-2007-4559) and
+    related attacks. The check no longer relies on a string blacklist; instead,
+    it normalizes the resolved path and validates against the base directory.
+    """
     base_path = os.path.realpath(path)
     for member in tar.getmembers():
-        member_name = member.name.replace("\\", "/")
-        if member_name.startswith("/") or member_name.startswith("../") or "/../" in member_name:
-            raise ValueError(f"Illegal tar member path: {member.name}")
+        # 1) Reject hard / symbolic links to avoid follow-up traversal via linkname.
         if member.islnk() or member.issym():
             raise ValueError(f"Link tar member is not allowed: {member.name}")
+        # 2) Reject device / fifo / char / block special files.
+        if member.isdev() or member.ischr() or member.isblk() or member.isfifo():
+            raise ValueError(f"Special tar member is not allowed: {member.name}")
+        # 3) Normalize member name and check against base directory.
+        member_name = member.name.replace("\\", "/").lstrip("/")
+        if not member_name:
+            raise ValueError(f"Illegal tar member path: {member.name}")
         target_path = os.path.realpath(os.path.join(base_path, member_name))
-        if os.path.commonpath([base_path, target_path]) != base_path:
+        if target_path != base_path and os.path.commonpath([base_path, target_path]) != base_path:
             raise ValueError(f"Tar member escapes target directory: {member.name}")
-    tar.extractall(path=path, members=members)
+        # 4) Reject members that resolve to the base directory itself
+        # (e.g. "..", "a/.."), since they indicate malformed input.
+        if target_path == base_path:
+            raise ValueError(f"Illegal tar member path: {member.name}")
+        # 5) Validate linkname as a defense-in-depth measure even though
+        # link members are already rejected above.
+        if member.linkname:
+            link_name = member.linkname.replace("\\", "/").lstrip("/")
+            link_target = os.path.realpath(os.path.join(base_path, link_name))
+            if os.path.commonpath([base_path, link_target]) != base_path:
+                raise ValueError(f"Tar member linkname escapes: {member.linkname}")
+    # Use the official data filter on Python >= 3.12 for layered defense.
+    if hasattr(tarfile, "data_filter"):
+        tar.extractall(path=path, members=members, filter="data")
+    else:
+        tar.extractall(path=path, members=members)
 
 
 def download_file(
