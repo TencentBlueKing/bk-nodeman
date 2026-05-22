@@ -11,19 +11,141 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import ast
 import copy
 import logging
 import re
 
 from mako import codegen, lexer
 from mako.exceptions import MakoException
-from mako.template import Template
 
 from pipeline import exceptions
 
 logger = logging.getLogger("root")
 # find mako template(format is ${xxx}，and ${}# not in xxx, # may raise memory error)
 TEMPLATE_PATTERN = re.compile(r"\${[^${}#]+}")
+
+# Whitelisted AST nodes for safe template expression evaluation.
+# Any expression containing nodes outside this set will be rejected,
+# preventing arbitrary code execution / SSTI via Mako templates.
+_ALLOWED_AST_NODES = (
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.BoolOp,
+    ast.Compare,
+    ast.IfExp,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.Subscript,
+    ast.Slice,
+    ast.List,
+    ast.Tuple,
+    ast.Dict,
+    ast.Set,
+    ast.Call,
+    ast.keyword,
+    # Operators
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Mod,
+    ast.FloorDiv,
+    ast.Pow,
+    ast.USub,
+    ast.UAdd,
+    ast.Not,
+    ast.And,
+    ast.Or,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.In,
+    ast.NotIn,
+    ast.Is,
+    ast.IsNot,
+)
+
+# Index node was removed in Python 3.9 but is still emitted on older versions.
+if hasattr(ast, "Index"):
+    _ALLOWED_AST_NODES = _ALLOWED_AST_NODES + (ast.Index,)
+
+# Whitelisted callables that may be invoked from inside a template expression.
+# Keep this list intentionally tiny, covering only formatting / type coercion
+# and basic numeric helpers used by existing pipeline templates.
+_SAFE_CALLABLES = {
+    "int": int,
+    "float": float,
+    "str": str,
+    "bool": bool,
+    "len": len,
+    "abs": abs,
+    "min": min,
+    "max": max,
+    "round": round,
+    "sum": sum,
+    "sorted": sorted,
+    "list": list,
+    "tuple": tuple,
+    "dict": dict,
+    "set": set,
+}
+
+# Names that must never appear as identifiers in template expressions.
+_FORBIDDEN_NAMES = {
+    "exec",
+    "eval",
+    "compile",
+    "open",
+    "globals",
+    "locals",
+    "vars",
+    "getattr",
+    "setattr",
+    "delattr",
+    "__import__",
+    "input",
+    "breakpoint",
+}
+
+
+def _validate_ast(tree: ast.AST) -> None:
+    """Walk the AST and reject any disallowed node, name or attribute access."""
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED_AST_NODES):
+            raise ValueError(f"Disallowed expression node: {type(node).__name__}")
+        if isinstance(node, ast.Name):
+            if node.id.startswith("_") or node.id in _FORBIDDEN_NAMES:
+                raise ValueError(f"Disallowed name in template expression: {node.id}")
+        if isinstance(node, ast.Call):
+            # Only direct calls to whitelisted builtins are allowed.
+            func = node.func
+            if not isinstance(func, ast.Name) or func.id not in _SAFE_CALLABLES:
+                raise ValueError("Only whitelisted callables are allowed in templates")
+
+
+def _safe_eval_expression(expr: str, value_maps: dict):
+    """
+    Safely evaluate a template expression against ``value_maps``.
+
+    Only a small whitelist of AST nodes and builtins is allowed, which keeps
+    the engine compatible with existing pipeline templates such as
+    ``${a + int(b)}`` or ``${a["c"]}`` while preventing Mako SSTI / RCE.
+    """
+    tree = ast.parse(expr.strip(), mode="eval")
+    _validate_ast(tree)
+    # No real builtins exposed; only the whitelisted callables and user vars.
+    safe_globals = {"__builtins__": {}}
+    safe_globals.update(_SAFE_CALLABLES)
+    # value_maps wins over builtins so user-defined variables can shadow them
+    # if needed.
+    safe_locals = dict(value_maps)
+    return eval(compile(tree, "<pipeline-template>", "eval"), safe_globals, safe_locals)  # noqa: S307
 
 
 def format_constant_key(key):
@@ -132,21 +254,29 @@ class ConstantTemplate(object):
     def resolve_template(template, value_maps):
         if not isinstance(template, str):
             raise exceptions.ConstantTypeException("constant resolve error, template[%s] is not a string" % template)
-        try:
-            tm = Template(template)
-        except MakoException as e:
-            logger.error("pipeline resolve template[{}] error[{}]".format(template, e))
+        # Only ``${expr}`` style placeholders are accepted. This explicitly
+        # disables Mako control blocks like ``<% ... %>`` and ``<%! ... %>``
+        # which are powerful enough to import arbitrary modules.
+        if not (template.startswith("${") and template.endswith("}")):
+            logger.warning("pipeline reject non-expression template[%s]", template)
             return template
+        expr = template[2:-1]
         try:
-            resolved = tm.render_unicode(**value_maps)
-        except (NameError, TypeError, KeyError) as e:
+            resolved = _safe_eval_expression(expr, value_maps)
+        except (NameError, KeyError) as e:
             logger.warning(
                 "constant content is invalid, variable referred does not exist or variable type error[%s]" % e
             )
             return template
-        except AttributeError as e:
-            # lazy Variable resolve failed before execution
-            logger.error("constant content is invalid with error [%s]" % e)
+        except (ValueError, SyntaxError) as e:
+            # ``ValueError`` is raised by the AST validator when the template
+            # contains disallowed nodes (potential SSTI). ``SyntaxError`` is
+            # raised by ``ast.parse`` for malformed expressions. In both cases
+            # we keep the original placeholder unchanged, mirroring previous
+            # behaviour for invalid input.
+            logger.warning("pipeline rejected unsafe or invalid template[%s]: %s", template, e)
             return template
-        else:
-            return resolved
+        except (TypeError, AttributeError) as e:
+            logger.warning("constant content is invalid with error [%s]" % e)
+            return template
+        return str(resolved) if not isinstance(resolved, str) else resolved

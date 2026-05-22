@@ -97,3 +97,30 @@ class TestConstantTemplate(TestCase):
 
         comma_exclude_template = expression.ConstantTemplate(['${a["c"]}', ['${"%s" % a}', "${a+int(b)}"]])
         self.assertEqual(set(comma_exclude_template.get_reference()), {"a", "b", "int"})
+
+    def test_resolve_template_blocks_ssti(self):
+        """Regression test: Mako SSTI payloads must be rejected."""
+        cons_tmpl = expression.ConstantTemplate("")
+        ssti_payloads = [
+            '${__import__("os").popen("id").read()}',
+            '${"".__class__.__mro__[1].__subclasses__()}',
+            '${getattr(0, "__class__")}',
+            '${open("/etc/passwd").read()}',
+            "${exec('print(1)')}",
+            "${eval('1+1')}",
+            '${(lambda: 1)()}',
+            '<% import os %>${os.system("id")}',
+        ]
+        for payload in ssti_payloads:
+            # Unsafe payloads should be returned untouched (i.e. not rendered).
+            self.assertEqual(
+                cons_tmpl.resolve_template(payload, {}),
+                payload,
+                msg=f"SSTI payload was unexpectedly rendered: {payload}",
+            )
+
+    def test_resolve_template_blocks_attribute_access(self):
+        """Attribute access on user-controlled objects must be rejected."""
+        cons_tmpl = expression.ConstantTemplate("")
+        payload = "${a.__class__}"
+        self.assertEqual(cons_tmpl.resolve_template(payload, {"a": 1}), payload)
