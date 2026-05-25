@@ -19,6 +19,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
+from apps.core.concurrent.retry import RetryHandler
+from apps.exceptions import ApiResultError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 from apps.utils import batch_request, concurrent, exc
@@ -280,6 +282,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
     )
     @exc.ExceptionHandler(exc_handler=core.default_sub_insts_task_exc_handler)
+    @RetryHandler(interval=1, interval_max=5, retry_times=2, exception_types=[ApiResultError])
     def handle_update_cmdb_hosts_case(
         self, sub_insts: List[models.SubscriptionInstanceRecord], host_ids_with_mutil_inner_ip: List[int]
     ) -> List[int]:
@@ -329,6 +332,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
     )
     @exc.ExceptionHandler(exc_handler=core.default_sub_insts_task_exc_handler)
+    @RetryHandler(interval=1, interval_max=5, retry_times=2, exception_types=[ApiResultError])
     def add_host_to_business_idle(self, biz_info: Dict[str, Any], sub_insts: List[models.SubscriptionInstanceRecord]):
         sub_inst_ids: List[int] = []
         bk_host_list: List[Dict[str, Any]] = []
