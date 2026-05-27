@@ -51,7 +51,7 @@
     "@blueking/platform-config": "^1.0.5",
     "@blueking/sub-saas": "^0.0.0-beta.9",
     "@icon-cool/bk-icon-node-manager": "latest",
-    "axios": "0.26.1",
+    "axios": "0.31.1",
     "bk-magic-vue": "2.5.6",
     "cookie": "~0.4.0",
     "github-markdown-css": "^4.0.0",
