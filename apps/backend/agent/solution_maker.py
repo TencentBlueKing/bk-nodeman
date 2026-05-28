@@ -41,6 +41,57 @@ def shell_quote(value: typing.Any) -> str:
     return shlex.quote(value)
 
 
+def quote_path(path: str, os_type: str) -> str:
+    """
+    根据操作系统类型，正确处理路径参数的引号和安全转义
+    
+    - Windows: 对所有路径使用双引号包裹，并转义危险字符（& | < > % 等）
+    - Linux/Mac: 使用 shell_quote (shlex.quote) 处理
+    
+    安全考虑：
+    1. Linux/Mac 下 shlex.quote() 用单引号包裹，可以安全处理所有特殊字符
+    2. Windows 批处理需要特别处理，因为：
+       - %~2 去除引号后，路径中的 & | 等字符可能被解析为命令
+       - 需要在 bat 脚本中对路径变量使用时再次加引号
+    
+    Args:
+        path: 路径字符串
+        os_type: 操作系统类型（constants.OsType.WINDOWS 或 other）
+    
+    Returns:
+        处理后的路径字符串
+    """
+    if not path:
+        return path
+    
+    # Windows 批处理：使用双引号包裹，并转义危险字符
+    if os_type == constants.OsType.WINDOWS:
+        # 如果路径已经包含双引号，直接返回
+        if path.startswith('"') and path.endswith('"'):
+            return path
+        
+        # 对所有路径都加双引号（不仅仅是包含空格的路径）
+        # 原因：防止路径中的特殊字符被CMD解析
+        
+        # 转义 Windows 批处理中的危险字符
+        # CMD 的转义符是 ^，但只在未加引号时有效
+        # 加引号后，大部分字符会被当作字面量，但：
+        # 1. % 需要特殊处理（变量引用）
+        # 2. " 需要转义为 ""
+        # 3. 其他字符在引号内通常是安全的
+        
+        escaped_path = path
+        # 转义双引号（bat脚本中用 "" 表示字面量的 "）
+        escaped_path = escaped_path.replace('"', '""')
+        # 转义百分号（bat脚本中用 %% 表示字面量的 %）
+        escaped_path = escaped_path.replace('%', '%%')
+        
+        return f'"{escaped_path}"'
+    
+    # Linux/Mac: 使用 shell_quote 处理
+    # shlex.quote() 用单引号包裹，可以安全处理所有特殊字符
+    return shell_quote(path)
+
 def normalize_host_identity_for_shell(value: typing.Any, auth_type: str) -> str:
     value = "" if value is None else str(value)
     if auth_type == constants.AuthType.KEY:
@@ -280,8 +331,10 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             f"-i {shell_quote(self.host.bk_cloud_id)}",
             f"-I {shell_quote(self.host.inner_ip or self.host.inner_ipv6)}",
             # 安装/下载配置
-            f"-T {self.dest_dir}",
-            f"-p {self.agent_config['setup_path']}",
+            # Windows 批处理使用 %~2 会自动去除双引号
+            # Linux/Mac 需要使用 shell_quote (shlex.quote) 来处理包含空格的路径
+            f"-T {quote_path(self.dest_dir, self.host.os_type)}",
+            f"-p {quote_path(self.agent_config['setup_path'], self.host.os_type)}",
             f"-c {shell_quote(self.token)}",
             f"-s {shell_quote(self.pipeline_id)}",
         ]

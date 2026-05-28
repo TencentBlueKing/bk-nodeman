@@ -12,7 +12,7 @@ set BACKUP_CONFIG_FILE=procinfo.json
 :CheckOpts
 if "%1" EQU "-h" goto help
 if "%1" EQU "-R" goto remove_agent_pro
-if "%1" EQU "-I" (set LAN_ETH_IP=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-I" (call :validate_input "%~2" IP && set LAN_ETH_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-i" (set CLOUD_ID=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-l" (set DOWNLOAD_URL=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-s" (set TASK_ID=%~2) && shift && shift && goto CheckOpts
@@ -20,12 +20,12 @@ if "%1" EQU "-u" (set UPGRADE=TRUE)
 if "%1" EQU "-c" (set TOKEN=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-r" (set CALLBACK_URL=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-x" (set HTTP_PROXY=%~2) && shift && shift && goto CheckOpts
-if "%1" EQU "-p" (set AGENT_SETUP_PATH=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-p" (call :validate_input "%~2" PATH && set AGENT_SETUP_PATH=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-e" (set BT_FILE_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-a" (set DATA_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-k" (set TASK_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-N" (set UPSTREAM_TYPE=%~2) && shift && shift && goto CheckOpts
-if "%1" EQU "-T" (set TMP_DIR=%~2) && shift && shift && goto CheckOpts && md -p %TMP_DIR%
+if "%1" EQU "-T" (call :validate_input "%~2" PATH && set TMP_DIR=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-v" (set VARS_LIST=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-o" (set OVERIDE=TRUE)
 if "%1" EQU "-O" (set IO_PORT=%~2) && shift && shift && goto CheckOpts
@@ -40,6 +40,10 @@ if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 
+rem 初始化路径变量（确保有默认值）
+if not defined TMP_DIR (set TMP_DIR=%TEMP%\gse_setup)
+if not defined AGENT_SETUP_PATH (set AGENT_SETUP_PATH=C:\gse)
+
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
 if not defined HTTP_PROXY (set HTTP_PROXY=) else (set HTTP_PROXY=%HTTP_PROXY%)
 if not defined INSTALL_USER (set INSTALL_USER=) else (set INSTALL_USER=%INSTALL_USER%)
@@ -53,26 +57,27 @@ if %service_id%=="gse" (set _service_id=) else (set _service_id=_%service_id%)
 set gse_winagent_home=%gse_winagent_home:\=\\%
 
 set report_line_num=3
-set tmp_json_resp=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%
-set tmp_json_resp_debug=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.debug
-set tmp_json_resp_report_log_1=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log.1
-set tmp_json_resp_report_log_2=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log.2
-set tmp_json_resp_report_log=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log
-set tmp_check_deploy_result_files=%TMP_DIR%\nm.setup_agent.bat.check_deploy_result.temp.txt
-set GSE_AGENT_RUN_DIR=%AGENT_SETUP_PATH%\agent\run
-set GSE_AGENT_DATA_DIR=%AGENT_SETUP_PATH%\agent\data
-set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
-set GSE_AGENT_ETC_DIR=%AGENT_SETUP_PATH%\agent\etc
-set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
-set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
-set PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent
+set "report_line_num=3"
+set "tmp_json_resp=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%"
+set "tmp_json_resp_debug=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.debug"
+set "tmp_json_resp_report_log_1=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log.1"
+set "tmp_json_resp_report_log_2=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log.2"
+set "tmp_json_resp_report_log=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%.report_log"
+set "tmp_check_deploy_result_files=%TMP_DIR%\nm.setup_agent.bat.check_deploy_result.temp.txt"
+set "GSE_AGENT_RUN_DIR=%AGENT_SETUP_PATH%\agent\run"
+set "GSE_AGENT_DATA_DIR=%AGENT_SETUP_PATH%\agent\data"
+set "GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs"
+set "GSE_AGENT_ETC_DIR=%AGENT_SETUP_PATH%\agent\etc"
+set "NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%"
+set "special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%"
+set "PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent"
 
-if exist %tmp_json_resp% (DEL /F /S /Q %tmp_json_resp%)
-if exist %tmp_json_resp_debug% (DEL /F /S /Q %tmp_json_resp_debug%)
-if exist %tmp_json_resp_report_log_1% (DEL /F /S /Q %tmp_json_resp_report_log_1%)
-if exist %tmp_json_resp_report_log_2% (DEL /F /S /Q %tmp_json_resp_report_log_2%)
-if exist %tmp_json_resp_report_log% (DEL /F /S /Q %tmp_json_resp_report_log%)
-if exist %tmp_check_deploy_result_files% (DEL /F /S /Q %tmp_check_deploy_result_files%)
+if exist "%tmp_json_resp%" (DEL /F /S /Q "%tmp_json_resp%")
+if exist "%tmp_json_resp_debug%" (DEL /F /S /Q "%tmp_json_resp_debug%")
+if exist "%tmp_json_resp_report_log_1%" (DEL /F /S /Q "%tmp_json_resp_report_log_1%")
+if exist "%tmp_json_resp_report_log_2%" (DEL /F /S /Q "%tmp_json_resp_report_log_2%")
+if exist "%tmp_json_resp_report_log%" (DEL /F /S /Q "%tmp_json_resp_report_log%")
+if exist "%tmp_check_deploy_result_files%" (DEL /F /S /Q "%tmp_check_deploy_result_files%")
 
 set /a nsttret=0
 rem for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,setup_startup_scripts,setup_crontab,check_deploy_result) do (
@@ -899,6 +904,86 @@ goto :EOF
     echo -o enable override OPTION DEFINED VARIABLES by -v. [optional]
     echo -O IO_PORT
     echo -E FILE_SVR_PORT
+goto :EOF
+
+rem ========== 安全验证函数 ==========
+:validate_input
+    set "input_value=%~1"
+    set "input_type=%~2"
+    
+    rem 检查空值
+    if "%input_value%"=="" (
+        echo Error: Input value cannot be empty
+        exit /b 1
+    )
+    
+    rem 根据类型进行不同的验证
+    if "%input_type%"=="PATH" (
+        call :validate_path "%input_value%"
+        exit /b %errorlevel%
+    )
+    
+    if "%input_type%"=="IP" (
+        call :validate_ip "%input_value%"
+        exit /b %errorlevel%
+    )
+    
+    rem 通用危险字符检查
+    call :check_dangerous_chars "%input_value%"
+    exit /b %errorlevel%
+
+:validate_path
+    set "path_to_check=%~1"
+    
+    rem 检查危险字符: & | < > ` $ ( ) { } [ ] ; ! # \n
+    echo "%path_to_check%" | findstr /i "[&|<>`$(){}[];!#]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains invalid characters: %path_to_check%
+        exit /b 1
+    )
+    
+    rem 检查是否包含尝试执行命令的模式
+    echo "%path_to_check%" | findstr /i "cmd /c bash sh powershell exec eval system nohup" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains potentially dangerous commands: %path_to_check%
+        exit /b 1
+    )
+    
+    rem 检查路径遍历攻击
+    echo "%path_to_check%" | findstr /i "\.\.\\ \.\.\." >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains directory traversal attempt: %path_to_check%
+        exit /b 1
+    )
+    
+    echo Info: Path validation passed: %path_to_check%
+    exit /b 0
+
+:validate_ip
+    set "ip_to_check=%~1"
+    
+    rem 检查是否是有效的IP地址格式 (简单检查)
+    echo "%ip_to_check%" | findstr /i "[&|<>`$(){}[];!#]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: IP contains invalid characters: %ip_to_check%
+        exit /b 1
+    )
+    
+    echo Info: IP validation passed: %ip_to_check%
+    exit /b 0
+
+:check_dangerous_chars
+    set "string_to_check=%~1"
+    
+    rem 检查危险字符
+    echo "%string_to_check%" | findstr /i "[&|<>`$]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Input contains dangerous characters: %string_to_check%
+        exit /b 1
+    )
+    
+    exit /b 0
+
 goto :EOF
 
 :EOF
