@@ -13,7 +13,7 @@ set BACKUP_CONFIG_FILE=procinfo.json
 
 :CheckOpts
 if "%1" EQU "-h" goto help
-if "%1" EQU "-I" (set LAN_ETH_IP=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-I" (call :validate_input "%~2" IP && set LAN_ETH_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-i" (set CLOUD_ID=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-n" (set NAMES=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-t" (set PKG_VERSION=%~2) && shift && shift && goto CheckOpts
@@ -23,12 +23,12 @@ if "%1" EQU "-u" (set UPGRADE=TRUE)
 if "%1" EQU "-c" (set TOKEN=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-r" (set CALLBACK_URL=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-x" (set HTTP_PROXY=%~2) && shift && shift && goto CheckOpts
-if "%1" EQU "-p" (set AGENT_SETUP_PATH=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-p" (call :validate_input "%~2" PATH && set AGENT_SETUP_PATH=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-e" (set FILE_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-a" (set DATA_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-k" (set CLUSTER_SERVER_IP=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-N" (set UPSTREAM_TYPE=%~2) && shift && shift && goto CheckOpts
-if "%1" EQU "-T" (set TMP_DIR=%~2) && shift && shift && goto CheckOpts && md -p %TMP_DIR%
+if "%1" EQU "-T" (call :validate_input "%~2" PATH && set TMP_DIR=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-v" (set VARS_LIST=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-o" (set OVERIDE=TRUE)
 if "%1" EQU "-O" (set CLUSTER_PORT=%~2) && shift && shift && goto CheckOpts
@@ -44,6 +44,10 @@ if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-R" (set UNINSTALL=0) && shift && shift && goto CheckOpts
 if "%1" EQU "-F" (set UNREGISTER_AGENT_ID=0) && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
+
+rem 初始化路径变量（确保有默认值）
+if not defined TMP_DIR (set TMP_DIR=%TEMP%\gse_setup)
+if not defined AGENT_SETUP_PATH (set AGENT_SETUP_PATH=C:\gse)
 rem if "%1" EQU "-R" goto remove_agent_pro
 
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
@@ -1370,6 +1374,86 @@ goto :EOF
     echo -E FILE_SVR_PORT
     echo -R UNINSTALL_AGENT
     echo -F UNREGISTER_AGENT_ID [optional]
+goto :EOF
+
+rem ========== 安全验证函数 ==========
+:validate_input
+    set "input_value=%~1"
+    set "input_type=%~2"
+    
+    rem 检查空值
+    if "%input_value%"=="" (
+        echo Error: Input value cannot be empty
+        exit /b 1
+    )
+    
+    rem 根据类型进行不同的验证
+    if "%input_type%"=="PATH" (
+        call :validate_path "%input_value%"
+        exit /b %errorlevel%
+    )
+    
+    if "%input_type%"=="IP" (
+        call :validate_ip "%input_value%"
+        exit /b %errorlevel%
+    )
+    
+    rem 通用危险字符检查
+    call :check_dangerous_chars "%input_value%"
+    exit /b %errorlevel%
+
+:validate_path
+    set "path_to_check=%~1"
+    
+    rem 检查危险字符: & | < > ` $ ( ) { } [ ] ; ! # \n
+    echo "%path_to_check%" | findstr /i "[&|<>`$(){}[];!#]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains invalid characters: %path_to_check%
+        exit /b 1
+    )
+    
+    rem 检查是否包含尝试执行命令的模式
+    echo "%path_to_check%" | findstr /i "cmd /c bash sh powershell exec eval system nohup" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains potentially dangerous commands: %path_to_check%
+        exit /b 1
+    )
+    
+    rem 检查路径遍历攻击
+    echo "%path_to_check%" | findstr /i "\.\.\\ \.\.\." >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Path contains directory traversal attempt: %path_to_check%
+        exit /b 1
+    )
+    
+    echo Info: Path validation passed: %path_to_check%
+    exit /b 0
+
+:validate_ip
+    set "ip_to_check=%~1"
+    
+    rem 检查是否是有效的IP地址格式 (简单检查)
+    echo "%ip_to_check%" | findstr /i "[&|<>`$(){}[];!#]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: IP contains invalid characters: %ip_to_check%
+        exit /b 1
+    )
+    
+    echo Info: IP validation passed: %ip_to_check%
+    exit /b 0
+
+:check_dangerous_chars
+    set "string_to_check=%~1"
+    
+    rem 检查危险字符
+    echo "%string_to_check%" | findstr /i "[&|<>`$]" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Error: Input contains dangerous characters: %string_to_check%
+        exit /b 1
+    )
+    
+    exit /b 0
+
 goto :EOF
 
 :EOF

@@ -168,6 +168,169 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
 
     os = serializers.ChoiceField(required=False, choices=PLUGIN_OS_CHOICES)
 
+    def _validate_path(self, value, field_name):
+        """
+        校验路径字段的安全性
+        
+        Args:
+            value: 路径值
+            field_name: 字段名称
+        
+        Returns:
+            校验后的路径值
+        
+        Raises:
+            ValidationError: 当路径不合法时抛出异常
+        """
+        if not value:
+            return value
+        
+        # 危险字符黑名单
+        dangerous_patterns = [
+            "..",           # 路径遍历
+            "~",            # 家目录
+            "$(",           # 命令替换
+            "`",            # 命令替换
+            "|",            # 管道
+            ";",            # 命令分隔符
+            "&",            # 后台执行
+            "&&",           # 命令连接
+            "||",           # 命令连接
+            ">",            # 重定向
+            "<",            # 重定向
+            "\n",           # 换行符
+            "\r",           # 回车符
+            "$",            # 变量引用
+            "(",            # 子shell
+            ")",            # 子shell
+            "{",            # 代码块
+            "}",            # 代码块
+            "[",            # 通配符
+            "]",            # 通配符
+            "!",            # 历史扩展
+            "\\",           # 转义符
+        ]
+        
+        # 检查危险字符
+        for pattern in dangerous_patterns:
+            if pattern in value:
+                raise ValidationError(
+                    _("{field_name} 包含不安全的字符: {pattern}").format(
+                        field_name=field_name, pattern=pattern
+                    )
+                )
+        
+        # 检查绝对路径
+        if not (value.startswith("/") or (len(value) > 1 and value[1] == ":")):
+            raise ValidationError(
+                _("{field_name} 必须是绝对路径").format(field_name=field_name)
+            )
+        
+        return value
+    
+    def _validate_cmd(self, value, field_name):
+        """
+        校验命令字段的安全性
+        
+        Args:
+            value: 命令值
+            field_name: 字段名称
+        
+        Returns:
+            校验后的命令值
+        
+        Raises:
+            ValidationError: 当命令不合法时抛出异常
+        """
+        if not value:
+            return value
+        
+        # 危险字符黑名单（命令注入）
+        dangerous_patterns = [
+            "$((",          # 算术扩展
+            "$(`",          # 命令替换变种
+            "$([",          # 命令替换变种
+            "$(<",          # 命令替换变种
+            "$(>",          # 命令替换变种
+            "$(",           # 命令替换
+            "`",            # 命令替换
+            "|",            # 管道
+            ";",            # 命令分隔符
+            "&",            # 后台执行
+            "&&",           # 命令连接
+            "||",           # 命令连接
+            ">",            # 重定向
+            "<",            # 重定向
+            "\n",           # 换行符
+            "\r",           # 回车符
+            "$",            # 变量引用
+            "(",            # 子shell
+            ")",            # 子shell
+            "{",            # 代码块
+            "}",            # 代码块
+            "!",            # 历史扩展
+            "\\",           # 转义符
+        ]
+        
+        # 检查危险字符
+        for pattern in dangerous_patterns:
+            if pattern in value:
+                raise ValidationError(
+                    _("{field_name} 包含不安全的字符: {pattern}").format(
+                        field_name=field_name, pattern=pattern
+                    )
+                )
+        
+        return value
+    
+    def validate_install_path(self, value):
+        """校验安装路径"""
+        return self._validate_path(value, "install_path")
+    
+    def validate_log_path(self, value):
+        """校验日志路径"""
+        return self._validate_path(value, "log_path")
+    
+    def validate_data_path(self, value):
+        """校验数据路径"""
+        return self._validate_path(value, "data_path")
+    
+    def validate_pid_path(self, value):
+        """校验PID路径"""
+        return self._validate_path(value, "pid_path")
+    
+    def validate_start_cmd(self, value):
+        """校验启动命令"""
+        return self._validate_cmd(value, "start_cmd")
+    
+    def validate_stop_cmd(self, value):
+        """校验停止命令"""
+        return self._validate_cmd(value, "stop_cmd")
+    
+    def validate_restart_cmd(self, value):
+        """校验重启命令"""
+        return self._validate_cmd(value, "restart_cmd")
+    
+    def validate_reload_cmd(self, value):
+        """校验重载命令"""
+        return self._validate_cmd(value, "reload_cmd")
+    
+    def validate_kill_cmd(self, value):
+        """校验杀死命令"""
+        return self._validate_cmd(value, "kill_cmd")
+    
+    def validate_version_cmd(self, value):
+        """校验版本命令"""
+        return self._validate_cmd(value, "version_cmd")
+    
+    def validate_health_cmd(self, value):
+        """校验健康检查命令"""
+        return self._validate_cmd(value, "health_cmd")
+    
+    def validate_debug_cmd(self, value):
+        """校验调试命令"""
+        return self._validate_cmd(value, "debug_cmd")
+
     class Meta:
         model = ProcControl
         fields = (

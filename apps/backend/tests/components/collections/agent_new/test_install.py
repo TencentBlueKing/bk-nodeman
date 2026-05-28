@@ -626,6 +626,27 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
             ],
         )
 
+    def test_shell_solution_with_private_key(self):
+        private_key = "-----BEGIN OPENSSH PRIVATE KEY-----\nkey-content\n-----END OPENSSH PRIVATE KEY-----"
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        models.IdentityData.objects.filter(bk_host_id=host.bk_host_id).update(
+            auth_type=constants.AuthType.KEY, key=private_key
+        )
+        host.identity = models.IdentityData.objects.get(bk_host_id=host.bk_host_id)
+        escaped_private_key = private_key.replace("\n", "\\n")
+
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"host_solutions_json_b64": r"(.*) -HSJB (.*)"},
+        )
+
+        self.assertIn(f"--host-identity='{escaped_private_key}'", solution_parse_result["cmds"][0])
+        self.assertIn(f" -HAT {constants.AuthType.KEY}", solution_parse_result["cmds"][0])
+
     def test_target_host_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(
