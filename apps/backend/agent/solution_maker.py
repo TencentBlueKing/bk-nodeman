@@ -41,6 +41,13 @@ def shell_quote(value: typing.Any) -> str:
     return shlex.quote(value)
 
 
+def normalize_host_identity_for_shell(value: typing.Any, auth_type: str) -> str:
+    value = "" if value is None else str(value)
+    if auth_type == constants.AuthType.KEY:
+        value = value.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
+    return value
+
+
 class ExecutionSolutionStepContent:
     def __init__(
         self,
@@ -795,6 +802,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         host_identity: str = (self.identity_data.password, self.identity_data.key)[
             self.identity_data.auth_type == constants.AuthType.KEY
         ]
+        host_identity = normalize_host_identity_for_shell(host_identity, self.identity_data.auth_type)
         login_ip: str = basic.compressed_ip(self.host.login_ip or self.host.inner_ip or self.host.inner_ipv6)
         run_cmd_params: typing.List[str] = [
             # 文件下载 / 回调服务信息
