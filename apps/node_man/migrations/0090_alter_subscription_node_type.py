@@ -15,22 +15,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0088_add_agent_config_plugin_ipc_and_alarm_event_data_id"),
+        ('node_man', '0089_gseplugindesc_tenant_id_packages_tenant_id'),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="gseplugindesc",
-            name="tenant_id",
-            field=models.CharField(
-                blank=True, db_index=True, default="default", max_length=64, null=True, verbose_name="租户ID"
-            ),
-        ),
-        migrations.AddField(
-            model_name="packages",
-            name="tenant_id",
-            field=models.CharField(
-                blank=True, db_index=True, default="default", max_length=64, null=True, verbose_name="租户ID"
-            ),
+        migrations.AlterField(
+            model_name='subscription',
+            name='node_type',
+            field=models.CharField(choices=[('TOPO', '动态实例（拓扑）'), ('INSTANCE', '静态实例'), ('SERVICE_TEMPLATE', '服务模板'), ('SET_TEMPLATE', '集群模板'), ('DYNAMIC_GROUP', '动态分组')], db_index=True, max_length=20, verbose_name='节点类型'),
         ),
     ]
