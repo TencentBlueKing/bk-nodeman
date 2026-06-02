@@ -385,7 +385,7 @@ class _CCApi(BaseApi):
         )
         self.execute_dynamic_group = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "execute_dynamic_group/",
+            url=CC_APIGATEWAY_ROOT_V2 + "dynamicgroup/data/{bk_biz_id}/{id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="执行动态分组",
