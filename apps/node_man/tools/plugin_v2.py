@@ -186,17 +186,24 @@ class PluginV2Tools:
         :param cpu_arch: cpu 架构
         :return:
         """
+        # 判断插件是否为官方插件
+        is_official = models.GsePluginDesc.objects.filter(
+            name=project, category=constants.CategoryType.official
+        ).exists()
+        
         # 构造DB查询参数，filter_values -> 过滤 None值
-        filter_params = basic.filter_values(
-            {
-                "id__in": pkg_ids,
-                "project": project,
-                "os": os_type,
-                "version": pkg_version,
-                "cpu_arch": cpu_arch,
-                "tenant_id": local.get_tenant_id(),
-            }
-        )
+        filter_params_dict = {
+            "id__in": pkg_ids,
+            "project": project,
+            "os": os_type,
+            "version": pkg_version,
+            "cpu_arch": cpu_arch,
+        }
+        # 官方插件不区分租户，不添加tenant_id条件
+        if not is_official:
+            filter_params_dict["tenant_id"] = local.get_tenant_id()
+        
+        filter_params = basic.filter_values(filter_params_dict)
         package_infos: List[Dict[str, Any]] = models.Packages.objects.filter(**filter_params).values(
             "id",
             "module",
