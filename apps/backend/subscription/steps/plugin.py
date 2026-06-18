@@ -862,7 +862,12 @@ class PluginStep(Step):
                     )
 
                 # 如果下发版本发生变化，则重新下发
-                if self.subscription.category == constants.SubscriptionType.POLICY:
+                if any(
+                    [
+                        self.subscription.category == constants.SubscriptionType.POLICY,
+                        not self.plugin_desc.is_official,
+                    ]
+                ):
                     if check_version_result["has_change"]:
                         instance_actions[instance_id] = action_dict["install_action"]
                         _push_migrate_reason(
