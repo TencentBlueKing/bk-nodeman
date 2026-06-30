@@ -7,7 +7,7 @@ ENV NPM_VERSION 6.14.4
 
 WORKDIR /frontend
 COPY frontend ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 RUN npm run build
 
 

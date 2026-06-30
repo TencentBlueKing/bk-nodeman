@@ -210,7 +210,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   ];
   private userList: IUserItem[] = [
     { id: 'PERMISSION', name: window.i18n.t('权限中心'), href: window.PROJECT_CONFIG.BK_IAM_SAAS_HOST },
-    { id: 'PERSONAL', name: window.i18n.t('个人中心'), href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL },
+    { id: 'PERSONAL', name: window.i18n.t('个人设置'), href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL },
     { id: 'LOGOUT', name: window.i18n.t('退出登录') },
   ];
   private loginUserinfo = {
@@ -228,7 +228,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       theme: 'primary' as const,
     },
     {
-      text: window.i18n.t('个人中心'),
+      text: window.i18n.t('个人设置'),
       icon: 'nodeman-icon nc-user',
       href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL,
       target: '_blank',

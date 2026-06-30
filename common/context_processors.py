@@ -22,6 +22,7 @@ from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username, get_tenant_id
+from apps.utils.time_tools import get_user_timezone
 from common.api.domains import USER_WEB_APIGATEWAY_ROOT_V3
 
 """
@@ -135,8 +136,9 @@ def mysetting(request):
         "DISPLAY_TAG": display_tag(),
         # display_name 展示 API 网关地址
         "API_BASE_URL": USER_WEB_APIGATEWAY_ROOT_V3,
-        # 个人中心访问地址
+        # 个人设置访问地址
         "BK_PERSONAL_CENTER_URL": settings.BK_USER_URL + "/personal-center",
         # 权限中心访问地址
         "BK_IAM_SAAS_HOST": settings.BK_IAM_SAAS_HOST,
+        "USER_TIMEZONE": get_user_timezone(request),
     }
