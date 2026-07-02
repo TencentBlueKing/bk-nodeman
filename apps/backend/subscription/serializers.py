@@ -175,7 +175,7 @@ class GetSubscriptionSerializer(GatewaySerializer):
     show_deleted = serializers.BooleanField(default=False, label="显示已删除的订阅")
 
     def validate(self, attrs):
-        self.validate_tenant_id(attrs["subscription_id"])
+        self.validate_tenant_ids(attrs["subscription_id_list"])
         return attrs
 
 
