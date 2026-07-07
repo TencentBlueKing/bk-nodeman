@@ -1909,9 +1909,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private colspanHandle({ column }: { column: IBkColumn }) {
     if (column.property === 'colspaOpera') {
       return [1, 2];
-    } if (column.property === 'colspaSetting') {
+    }
+    if (column.property === 'colspaSetting') {
       return [0, 0];
     }
+    // 其他列返回默认值，避免滚动时渲染异常
+    return [1, 1];
   }
   private getBatchMenuStaus(item: IOperateItem) {
     return !this.isSelectedAllPages && !(['reinstall', 'log', 'remove'].includes(item.id))
