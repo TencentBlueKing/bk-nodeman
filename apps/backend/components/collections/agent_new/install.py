@@ -692,8 +692,17 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
             if install_sub_inst_obj.host.os_type == constants.OsType.WINDOWS:
-                sshd_info = await conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=False, timeout=SSH_RUN_TIMEOUT)
-                if sshd_info.exit_status == 0 and "cygwin" not in sshd_info.stdout.lower():
+                windows_sshd_check_cmd_biz_map = models.GlobalSettings.get_config(
+                    key=models.GlobalSettings.KeyEnum.WINDOWS_SSHD_CHECK_CMD_BIZ_MAP.value,
+                    default={},
+                )
+                sshd_check_cmd = windows_sshd_check_cmd_biz_map.get(
+                    str(install_sub_inst_obj.host.bk_biz_id), 
+                    POWERSHELL_SERVICE_CHECK_SSHD
+                )
+                sshd_info = await conn.run(sshd_check_cmd, check=False, timeout=SSH_RUN_TIMEOUT)
+                sshd_output = "{}\n{}".format(sshd_info.stdout or "", sshd_info.stderr or "").lower()
+                if sshd_info.exit_status == 0 and "cygwin" not in sshd_output:
                     self.build_shell_to_batch_command_converter(execution_solution.steps, command_converter)
 
             for execution_solution_step in execution_solution.steps:

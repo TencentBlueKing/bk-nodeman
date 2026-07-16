@@ -198,6 +198,8 @@ class GlobalSettings(models.Model):
         AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY = "AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY"
         NGINX_HTTP_WHITELIST = "NGINX_HTTP_WHITELIST"
         POWERSHELL_CMD_WHITELIST_BIZ = "POWERSHELL_CMD_WHITELIST_BIZ"
+        # Windows SSHD service check command map by biz, e.g. {"2": "uname -s"}
+        WINDOWS_SSHD_CHECK_CMD_BIZ_MAP = "WINDOWS_SSHD_CHECK_CMD_BIZ_MAP"
         PUSH_PY311_TO_PROXY = "PUSH_PY311_TO_PROXY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
