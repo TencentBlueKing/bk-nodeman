@@ -32,11 +32,14 @@ class GatewaySerializer(serializers.Serializer):
     bk_app_code = serializers.CharField()
 
     @staticmethod
-    def validate_tenant_id(subscription_id):
+    def validate_tenant_id(subscription_id, show_deleted=False):
         if not settings.ENABLE_MULTI_TENANT_MODE:
             return
+        query_kwargs = {"id": subscription_id}
+        if show_deleted:
+            query_kwargs["show_deleted"] = True
         try:
-            subscription: models.Subscription = models.Subscription.objects.get(id=subscription_id)
+            subscription: models.Subscription = models.Subscription.objects.get(**query_kwargs)
         except models.Subscription.DoesNotExist:
             raise SubscriptionNotExist({"subscription_id": subscription_id})
         if subscription.tenant_id != local.get_tenant_id():
@@ -255,6 +258,10 @@ class TaskResultSerializer(GatewaySerializer):
     need_detail = serializers.BooleanField(default=False, label="是否需要详情")
     need_aggregate_all_tasks = serializers.BooleanField(default=False, label="是否需要聚合全部任务查询最后一次视图")
     need_out_of_scope_snapshots = serializers.BooleanField(default=True, label="是否需要已不在范围内的快照信息")
+
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"], show_deleted=attrs["need_out_of_scope_snapshots"])
+        return attrs
 
 
 class TaskResultDetailSerializer(GatewaySerializer):
