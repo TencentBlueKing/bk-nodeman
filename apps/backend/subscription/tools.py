@@ -28,6 +28,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.exceptions import ApiResultError
 from apps.backend.components.collections import core
 from apps.backend.constants import FilterFieldName, InstNodeType
 from apps.backend.subscription import task_tools
@@ -1136,6 +1137,24 @@ def execute_dynamic_groups(nodes: List[dict], bk_biz_id: int, bk_obj_id: str, fi
     :param bk_obj_id: 分组目标(目前只支持 host 和 set )
     :param fields: 属性列表
     """
+
+    def batch_request_ignore_dynamic_group_not_exists(**kwargs):
+        try:
+            return batch_request(**kwargs)
+        except ApiResultError as e:
+            # Dynamic group does not exist, treat it as empty result.
+            if e.code == 1199019:
+                logger.warning(
+                    "execute dynamic group failed, dynamic group does not exist: "
+                    "bk_biz_id -> %s, bk_obj_id -> %s, fields -> %s, request_params -> %s",
+                    bk_biz_id,
+                    bk_obj_id,
+                    fields,
+                    kwargs.get("params"),
+                )
+                return []
+            raise e
+
     params = [
         {
             "func": CCApi.execute_dynamic_group,
@@ -1153,7 +1172,10 @@ def execute_dynamic_groups(nodes: List[dict], bk_biz_id: int, bk_obj_id: str, fi
     ]
 
     return batch_call(
-        batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
+        batch_request_ignore_dynamic_group_not_exists,
+        params,
+        extend_result=True,
+        interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
     )
 
 
