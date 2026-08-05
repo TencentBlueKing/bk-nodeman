@@ -14,6 +14,7 @@ import json
 import os
 import random
 import re
+import shlex
 import socket
 import time
 import typing
@@ -603,6 +604,15 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         execution_solution = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ]
+        script_param = execution_solution.steps[0].contents[0].text
+        if host.os_type == constants.OsType.WINDOWS:
+            windows_sshd_check_cmd_biz_map = models.GlobalSettings.get_config(
+                key=models.GlobalSettings.KeyEnum.WINDOWS_SSHD_CHECK_CMD_BIZ_MAP.value,
+                default={},
+            )
+            sshd_check_cmd = windows_sshd_check_cmd_biz_map.get(str(host.bk_biz_id), POWERSHELL_SERVICE_CHECK_SSHD)
+            script_param = f"{script_param} --windows-sshd-check-cmd {shlex.quote(sshd_check_cmd)}"
+
         kwargs = {
             "bk_biz_id": bk_biz_id,
             "task_name": f"NODEMAN_{sub_inst_id}_{self.__class__.__name__}",
@@ -611,7 +621,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "account_alias": settings.BACKEND_UNIX_ACCOUNT,
             "script_language": constants.ScriptLanguageType.PYTHON.value,
             "script_content": base64.b64encode(self.setup_pagent_file_content).decode(),
-            "script_param": base64.b64encode(execution_solution.steps[0].contents[0].text.encode()).decode(),
+            "script_param": base64.b64encode(script_param.encode()).decode(),
             "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
         data = self.rolling_request_job(sub_inst_id, JobApi.fast_execute_script, kwargs)

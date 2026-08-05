@@ -68,6 +68,7 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HPP", "--host-proxy-port", type=int, default=17981, help="Host Proxy Port")
     parser.add_argument("-CPA", "--channel-proxy-address", type=str, help="Channel Proxy Address", default=None)
 
+    parser.add_argument("-WSCC", "--windows-sshd-check-cmd", type=str, help="Windows sshd check command", default=None)
     parser.add_argument("-HSJB", "--host-solutions-json-b64", type=str, help="Channel Proxy Address", default=None)
     return parser
 
@@ -374,8 +375,10 @@ def execute_shell_solution(
     ) as conn:
         command_converter = {}
         if os_type == "windows":
-            run_output: RunOutput = conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=False, timeout=30)
-            if run_output.exit_status == 0 and "cygwin" not in run_output.stdout.lower():
+            sshd_check_cmd = args.windows_sshd_check_cmd or POWERSHELL_SERVICE_CHECK_SSHD
+            run_output: RunOutput = conn.run(sshd_check_cmd, check=False, timeout=30)
+            sshd_output = "{}\n{}".format(run_output.stdout or "", run_output.stderr or "").lower()
+            if run_output.exit_status == 0 and "cygwin" not in sshd_output:
                 for step in execution_solution["steps"]:
                     if step["type"] != "commands":
                         continue
