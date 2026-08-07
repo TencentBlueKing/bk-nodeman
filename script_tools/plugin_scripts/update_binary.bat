@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 
 setlocal EnableDelayedExpansion
 set cu_date=%date:~0,4%-%date:~5,2%-%date:~8,2%
@@ -139,9 +139,11 @@ if exist %SWWIN_PACKAGE:~0,-4%.tar (
 rem 拷贝插件脚本到官方插件目录下,避免脚本老旧有bug或者不存在的情况
 
 if "%SWWIN_TARGET_DIR%"=="external" if defined GROUP_DIR (
-    rem 第三方插件指定了group_id，解压后需要将插件从标准路径移动到实例路径下
-    rd /S /Q %WIN_GSE_BINDIR%
-    move %SWWIN_GSE_HOME%\external_plugins\%SWWIN_PLUGIN_NAME% %WIN_GSE_BINDIR%\..\
-)
+    rem Third-party plugin with group_id should be copied from standard path to group instance path
+    xcopy "%SWWIN_GSE_HOME%\external_plugins\%SWWIN_PLUGIN_NAME%" "%WIN_GSE_BINDIR%" /E /I /Y
+    if errorlevel 1 exit /b 1
+
+    rd /S /Q "%SWWIN_GSE_HOME%\external_plugins\%SWWIN_PLUGIN_NAME%" >>error.log 2>&1
+) 
 
 :EOF
