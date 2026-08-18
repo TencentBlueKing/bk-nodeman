@@ -72,7 +72,6 @@ set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
 set GSE_AGENT_ETC_DIR=%AGENT_SETUP_PATH%\agent\etc
 set GSE_AGENT_BIN_DIR=%AGENT_SETUP_PATH%\agent\bin
 set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
-set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
 set PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent
 
 if exist %tmp_json_resp% (DEL /F /S /Q %tmp_json_resp%)
@@ -146,9 +145,9 @@ set gse_agent_daemon_is_started=
 set gse_agent_is_started=
 for /l %%n in (1, 1, 10) do (
     ping -n 1 127.0.0.1 >nul 2>&1
-    wmic process where name='gse_agent_daemon.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
+    powershell -NoProfile -Command "@(Get-WmiObject Win32_Process -Filter 'Name=''gse_agent_daemon.exe''') | Where-Object { $_.ExecutablePath -like '*%AGENT_SETUP_PATH%*' } | ForEach-Object { $_.ProcessId }" | findstr /r "[0-9]" >nul 2>&1
     set gse_agent_daemon_is_started=%errorlevel%
-    wmic process where name='gse_agent.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
+    powershell -NoProfile -Command "@(Get-WmiObject Win32_Process -Filter 'Name=''gse_agent.exe''') | Where-Object { $_.ExecutablePath -like '*%AGENT_SETUP_PATH%*' } | ForEach-Object { $_.ProcessId }" | findstr /r "[0-9]" >nul 2>&1
     set gse_agent_is_started=%errorlevel%
 
     if !gse_agent_daemon_is_started! equ 0 if !gse_agent_is_started! equ 0 (
@@ -184,7 +183,7 @@ endlocal
 goto :EOF
 
 :is_process_stop_ok
-    wmic process where name='gse_agent_daemon.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
+    powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter 'Name=''gse_agent_daemon.exe''' | Where-Object { $_.ExecutablePath -like '*%AGENT_SETUP_PATH%*' } | ForEach-Object { $_.ProcessId }" | findstr /r "[0-9]" >nul 2>&1
     if %errorlevel% neq 0 (
         call :print INFO setup_agent - "Process gse_agent_daemon.exe stop success"
         call :multi_report_step_status
@@ -193,7 +192,7 @@ goto :EOF
         call :multi_report_step_status
         exit /b 3
     )
-    wmic process where name='gse_agent.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
+    powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter 'Name=''gse_agent.exe''' | Where-Object { $_.ExecutablePath -like '*%AGENT_SETUP_PATH%*' } | ForEach-Object { $_.ProcessId }" | findstr /r "[0-9]" >nul 2>&1
     if %errorlevel% neq 0 (
         call :print INFO setup_agent - "Process gse_agent.exe stop success"
         call :multi_report_step_status
@@ -486,8 +485,8 @@ goto :EOF
     if exist %PURE_AGENT_SETNUP_PATH% (
         cd /d %PURE_AGENT_SETNUP_PATH%\bin && .\gsectl stop 1>nul 2>&1
         ping -n 3 127.0.0.1 1>nul 2>&1
-        wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent_daemon.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent_daemon.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
         cd /d %TMP_DIR%
         call :is_process_stop_ok
     ) else (
@@ -527,10 +526,10 @@ goto :EOF
         )
     )
     if exist %PURE_AGENT_SETNUP_PATH% (
-        wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='basereport.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\basereport.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='gsecmdline.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\gsecmdline.exe'" call terminate 1>nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent_daemon.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent_daemon.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='basereport.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\plugins\bin\basereport.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gsecmdline.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\plugins\bin\gsecmdline.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
     )
     RD /Q /S %GSE_AGENT_BIN_DIR% 1>nul 2>&1
     if not exist %GSE_AGENT_BIN_DIR% (
@@ -755,7 +754,7 @@ goto :EOF
 
 :check_disk_space
     for /f "tokens=1,2 delims=\" %%s in ("%AGENT_SETUP_PATH%") do (
-        for /f %%i in ('wmic LogicalDisk where "Caption='%%s'" get FreeSpace ^| findstr "[0-9]"') do (
+        for /f %%i in ('powershell -NoProfile -Command "(Get-WmiObject Win32_LogicalDisk -Filter \"DeviceID^='%%s'\").FreeSpace"') do (
             if %%i LSS 307200 (
                 call :print FAIL check_env FAILED "no enough space left on %TMP_DIR%"
                 call :multi_report_step_status
@@ -1006,7 +1005,6 @@ goto :EOF
     set GSE_AGENT_DATA_DIR=%AGENT_SETUP_PATH%\agent\data
     set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
     set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
-    set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
     set PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent
     if exist %tmp_json_resp% (DEL /F /S /Q %tmp_json_resp%)
     if exist %tmp_json_resp_debug% (DEL /F /S /Q %tmp_json_resp_debug%)
@@ -1051,10 +1049,10 @@ goto :EOF
         )
     )
     if exist %PURE_AGENT_SETNUP_PATH% (
-        wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='basereport.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\basereport.exe'" call terminate 1>nul 2>&1
-        wmic process where "name='gsecmdline.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\gsecmdline.exe'" call terminate 1>nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent_daemon.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent_daemon.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gse_agent.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='basereport.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\plugins\bin\basereport.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
+        powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \"Name='gsecmdline.exe'\" | Where-Object { $_.ExecutablePath -ieq '%AGENT_SETUP_PATH%\plugins\bin\gsecmdline.exe' } | ForEach-Object { (Get-Process -Id $_.ProcessId).Kill() }" >nul 2>&1
     )
     RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
     if not exist %PURE_AGENT_SETNUP_PATH% (

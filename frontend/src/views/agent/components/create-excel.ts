@@ -27,6 +27,7 @@ const config: IHead[] = [
   { name: window.i18n.t('传输限速Unit'), prop: 'bt_speed_limit', optional: true, width: 140 },
   { name: window.i18n.t('寻址方式'), prop: 'bk_addressing', optional: true, width: 110 },
   { name: window.i18n.t('数据压缩'), prop: 'enable_compression', optional: true, width: 110 },
+  { name: window.i18n.t('强制更新AgentID'), prop: 'force_update_agent_id', optional: true, width: 130 },
 ];
 
 export const headConfig = $DHCP
