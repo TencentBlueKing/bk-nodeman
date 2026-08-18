@@ -298,6 +298,18 @@ const config: ISetupHead[] = [
     manualProp: true,
   },
   {
+    label: '强制更新AgentID',
+    prop: 'force_update_agent_id',
+    type: 'switcher',
+    default: false,
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    tips: '强制更新AgentIDTip',
+    width: 90,
+    parentProp: 'trans_info',
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',

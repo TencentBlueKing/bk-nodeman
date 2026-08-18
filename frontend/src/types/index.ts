@@ -243,6 +243,7 @@ export interface ISetupRow {
   os_type?: string
   port?: number
   peer_exchange_switch_for_agent: boolean | number
+  force_update_agent_id?: boolean | number
   prove?: string
   password?: string
   key?: string

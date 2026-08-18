@@ -368,6 +368,8 @@ export default {
   全: 'All',
   数据压缩: 'Data Compression',
   数据压缩tip: 'After data compression is enabled, all log collection data traffic transmitted through the data pipeline will be compressed, which can reduce the bandwidth pressure caused by data reporting to a certain extent.\n\nNote: After data compression is enabled, it will cause a small increase in CPU usage and a slight delay in milliseconds in reporting efficiency.\nThis configuration is only available for agent 2.0, which will not take effect for agent 1.0.',
+  强制更新AgentID: 'Force Update AgentID',
+  强制更新AgentIDTip: 'When enabled, the agent_id will be forcibly regenerated during installation if the host already has one, which is used to fix agent_id conflicts in scenarios such as host cloning.',
 
   // agent安装
   主机IPTip: 'Host IP',
