@@ -84,7 +84,7 @@ kazoo==2.8.0
 
 # asgiref==3.4.1
 
-asyncssh==2.14.2
+asyncssh==2.23.1
 
 # prometheus
 django-prometheus==2.2.0
