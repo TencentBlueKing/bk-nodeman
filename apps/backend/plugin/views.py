@@ -18,6 +18,8 @@ import logging
 import os
 import re
 import shutil
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Union
 
 import six
@@ -326,16 +328,24 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         params.pop("bk_app_code")
         name = params["name"]
 
-        models.GsePluginDesc.objects.filter(name=name).delete()
-        packages = models.Packages.objects.filter(project=name)
+        # 当前线程的租户ID，删除操作按租户隔离，避免误删其他租户同名插件
+        tenant_id = get_tenant_id()
+
+        models.GsePluginDesc.objects.filter(name=name, tenant_id=tenant_id).delete()
+        packages = models.Packages.objects.filter(project=name, tenant_id=tenant_id)
+        storage = get_storage()
         for package in packages:
+            # 使用 storage.delete 兼容对象存储（如 BKRepo），避免 os.path.exists/os.remove 在对象存储下失效
             file_path = os.path.join(package.pkg_path, package.pkg_name)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            try:
+                storage.delete(file_path)
+            except Exception as err:  # noqa: BLE001
+                logger.warning(f"failed to delete plugin package file {file_path}: {err}")
 
         packages.delete()
-        models.ProcControl.objects.filter(project=name).delete()
-        plugin_templates = models.PluginConfigTemplate.objects.filter(plugin_name=name)
+        # 按租户隔离删除，避免误删其他租户同名插件的进程控制与配置模板
+        models.ProcControl.objects.filter(project=name, tenant_id=tenant_id).delete()
+        plugin_templates = models.PluginConfigTemplate.objects.filter(plugin_name=name, tenant_id=tenant_id)
         models.PluginConfigInstance.objects.filter(
             plugin_config_template__in=[template.id for template in plugin_templates]
         ).delete()
@@ -812,6 +822,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         if "os" in params["query_params"]:
             params["query_params"]["os_type"] = params["query_params"].pop("os")
+
+        # 注入租户信息，保证导出时按租户隔离第三方插件
+        params["query_params"]["tenant_id"] = get_tenant_id()
 
         record = models.DownloadRecord.create_record(
             category=params["category"],

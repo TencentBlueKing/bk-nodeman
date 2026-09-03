@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from apps.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
+from apps.utils import local
 
 
 # 放在后台会导致循坏导入
@@ -35,7 +36,13 @@ class StepSerializer(serializers.Serializer):
     params = serializers.ListField(child=serializers.DictField(), min_length=1)
 
     def validate(self, data):
-        if models.GsePluginDesc.objects.filter(name=data["id"]).first() is None:
+        # 官方插件全局共享，第三方插件按当前租户隔离
+        tenant_id = local.get_tenant_id()
+        plugin_exists = (
+            models.GsePluginDesc.objects.filter(name=data["id"], category=constants.CategoryType.official).exists()
+            or models.GsePluginDesc.objects.filter(name=data["id"], tenant_id=tenant_id).exists()
+        )
+        if not plugin_exists:
             raise exceptions.PluginNotExistError(_("不存在名称为: {name} 的插件").format(name=data["id"]))
 
         # configs校验：确保选包的os&cpu_arch唯一

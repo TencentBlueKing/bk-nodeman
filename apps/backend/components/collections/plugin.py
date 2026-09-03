@@ -549,7 +549,8 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
             agent_config = self.get_agent_config_by_process_status(process_status, common_data)
             os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
             file_target_path = agent_config["temp_path"]
-            package_path = "/".join((nginx_path, os_type, host.cpu_arch, package.pkg_name))
+            # 使用 package.pkg_path（已包含租户隔离前缀）拼接源文件路径，保证多租户同名包正确分发
+            package_path = "/".join((package.pkg_path, package.pkg_name))
             # 分发文件目标路径及文件源路径一致时，可聚合为同一个分发任务
             md5_key = self.get_md5(f"{package_path}-{file_target_path}")
             jobs[md5_key]["ip_list"].append({"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip})

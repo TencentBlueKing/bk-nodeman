@@ -138,12 +138,14 @@ class PluginV2Tools:
             info["nodes_number"] = nodes_counter.get(f"{project}_{info['os']}_{info['cpu_arch']}_{info['version']}", 0)
 
     @classmethod
-    def get_proj_os_cpu__latest_version_map(cls, projects: Union[List[str], Set[str]]) -> Dict[str, str]:
-        packages = list(
-            models.Packages.objects.filter(project__in=set(projects), is_release_version=True, is_ready=True).values(
-                "project", "version", "os", "cpu_arch"
-            )
-        )
+    def get_proj_os_cpu__latest_version_map(
+        cls, projects: Union[List[str], Set[str]], tenant_id: str = None
+    ) -> Dict[str, str]:
+        filter_params = {"project__in": set(projects), "is_release_version": True, "is_ready": True}
+        # 第三方插件按租户隔离，避免跨租户取最新版本
+        if tenant_id is not None:
+            filter_params["tenant_id"] = tenant_id
+        packages = list(models.Packages.objects.filter(**filter_params).values("project", "version", "os", "cpu_arch"))
 
         proj_os_cpu__latest_version_map = {}
         for project, pkgs in groupby(sorted(packages, key=lambda pkg: pkg["project"]), lambda pkg: pkg["project"]):

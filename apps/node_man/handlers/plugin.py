@@ -38,7 +38,7 @@ from apps.node_man.models import (
     SubscriptionTask,
 )
 from apps.node_man.tools.host import HostTools
-from apps.utils import APIModel
+from apps.utils import APIModel, local
 from common.api import NodeApi
 
 
@@ -421,7 +421,8 @@ class PluginHandler(APIModel):
         """
         获取某个插件包列表
         """
-        plugin_obj = GsePluginDesc.objects.get(name=project)
+        # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免误匹配其他租户同名插件
+        plugin_obj = GsePluginDesc.objects.get(name=project, tenant_id=local.get_tenant_id())
 
         # 查找置顶版本
         top_tag: Tag = targets.PluginTargetHelper.get_top_tag_or_none(plugin_obj.id)

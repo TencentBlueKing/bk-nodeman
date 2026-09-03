@@ -78,16 +78,21 @@ class PluginTargetHelper(base.BaseTargetHelper):
         plugin_names: typing.Set[str] = set()
         os_types: typing.Set[str] = set()
         cpu_arches: typing.Set[str] = set()
+        tenant_ids: typing.Set[str] = set()
 
         for package in packages:
             plugin_names.add(package["project"])
             os_types.add(package["os"])
             cpu_arches.add(package["cpu_arch"])
+            tenant_ids.add(package["tenant_id"])
 
-        # 获取插件包关联的配置模板
+        # 获取插件包关联的配置模板，按租户隔离避免跨租户同名模板混入
         config_tmpls = list(
             node_man_models.PluginConfigTemplate.objects.filter(
-                plugin_name__in=plugin_names, os__in=os_types, cpu_arch__in=cpu_arches
+                plugin_name__in=plugin_names,
+                os__in=os_types,
+                cpu_arch__in=cpu_arches,
+                tenant_id__in=tenant_ids,
             ).values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os", "plugin_name")
         )
 
@@ -133,13 +138,14 @@ class PluginTargetHelper(base.BaseTargetHelper):
         config_tmpl_objs: typing.List[
             node_man_models.PluginConfigTemplate
         ] = node_man_models.PluginConfigTemplate.objects.filter(id__in=config_tmpl_ids)
-        # 发布前标签版本对应的配置模板
+        # 发布前标签版本对应的配置模板（按租户隔离，避免误删其他租户同名模板）
         before_publish_config_tmpl_ids: typing.Set[int] = set(
             node_man_models.PluginConfigTemplate.objects.filter(
                 os=pkg_obj.os,
                 cpu_arch=pkg_obj.cpu_arch,
                 plugin_name=pkg_obj.project,
                 plugin_version=self.tag_name,
+                tenant_id=self.target.tenant_id,
             ).values_list("id", flat=True)
         )
         tag_pkg_obj, __ = node_man_models.Packages.objects.update_or_create(
@@ -150,6 +156,8 @@ class PluginTargetHelper(base.BaseTargetHelper):
             defaults=dict(
                 md5=pkg_obj.md5,
                 creator=pkg_obj.creator,
+                # 标签包继承目标插件的租户，保证发布/删除租户一致（官方插件为 "system"）
+                tenant_id=self.target.tenant_id,
                 module=pkg_obj.module,
                 pkg_name=pkg_obj.pkg_name,
                 pkg_size=pkg_obj.pkg_size,
@@ -174,6 +182,7 @@ class PluginTargetHelper(base.BaseTargetHelper):
                 plugin_version=self.tag_name,
                 os=tag_pkg_obj.os,
                 cpu_arch=tag_pkg_obj.cpu_arch,
+                tenant_id=tag_pkg_obj.tenant_id,
                 defaults=dict(
                     format=config_tmpl_obj.format,
                     file_path=config_tmpl_obj.file_path,
@@ -204,15 +213,17 @@ class PluginTargetHelper(base.BaseTargetHelper):
         )
         proc_control_obj.id = None
         proc_control_obj.plugin_package_id = tag_pkg_obj.id
+        # 继承标签包的租户ID，避免复制到 None 导致跨租户查询不到
+        proc_control_obj.tenant_id = tag_pkg_obj.tenant_id
         proc_control_obj.save()
 
         return tag_pkg_obj
 
     def _publish_tag_version(self):
         target: node_man_models.GsePluginDesc = self.target
-        # 查找相应版本的包
+        # 查找相应版本的包（按租户隔离）
         pkg_objs: typing.List[node_man_models.Packages] = node_man_models.Packages.objects.filter(
-            project=target.name, version=self.target_version
+            project=target.name, version=self.target_version, tenant_id=target.tenant_id
         )
         if not pkg_objs:
             # 版本包不存在的情况下，不允许发布
@@ -228,16 +239,17 @@ class PluginTargetHelper(base.BaseTargetHelper):
                 "version": pkg_obj.version,
                 "os": pkg_obj.os,
                 "cpu_arch": pkg_obj.cpu_arch,
+                "tenant_id": pkg_obj.tenant_id,
             }
             for pkg_obj in pkg_objs
         ]
         self.fill_latest_config_tmpls_to_packages(packages=pkg_infos)
 
-        # 获取发布前的插件包 ID 列表
+        # 获取发布前的插件包 ID 列表（按租户隔离，避免删除其他租户标签包）
         before_publish_tag_pkg_ids: typing.Set[int] = set(
-            node_man_models.Packages.objects.filter(project=target.name, version=self.tag_name).values_list(
-                "id", flat=True
-            )
+            node_man_models.Packages.objects.filter(
+                project=target.name, version=self.tag_name, tenant_id=target.tenant_id
+            ).values_list("id", flat=True)
         )
 
         published_tag_pkg_ids: typing.Set[int] = set()
@@ -254,14 +266,15 @@ class PluginTargetHelper(base.BaseTargetHelper):
 
     def _delete_tag_version(self):
         target: node_man_models.GsePluginDesc = self.target
+        # 按租户隔离查询标签包，与发布侧 _publish_tag_version 对齐，避免误删其他租户标签包
         pkg_ids: typing.List[int] = list(
-            node_man_models.Packages.objects.filter(project=target.name, version=self.tag_name).values_list(
-                "id", flat=True
-            )
+            node_man_models.Packages.objects.filter(
+                project=target.name, version=self.tag_name, tenant_id=target.tenant_id
+            ).values_list("id", flat=True)
         )
         config_tmpl_ids: typing.List[int] = list(
             node_man_models.PluginConfigTemplate.objects.filter(
-                plugin_name=target.name, plugin_version=self.tag_name
+                plugin_name=target.name, plugin_version=self.tag_name, tenant_id=target.tenant_id
             ).values_list("id", flat=True)
         )
 

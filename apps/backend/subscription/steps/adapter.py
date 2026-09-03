@@ -24,6 +24,7 @@ from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.core.tag.targets.plugin import PluginTargetHelper
 from apps.node_man import constants, models
+from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -142,7 +143,8 @@ class PolicyStepAdapter:
         if hasattr(self, "_plugin_desc") and self._plugin_desc:
             return self._plugin_desc
         try:
-            plugin_desc = models.GsePluginDesc.objects.get(name=self.plugin_name)
+            # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免下发误命中他租户同名插件
+            plugin_desc = models.GsePluginDesc.objects.get(name=self.plugin_name, tenant_id=get_tenant_id())
         except models.GsePluginDesc.DoesNotExist:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
 
@@ -370,7 +372,8 @@ class PolicyStepAdapter:
         plugin_version = validated_config["plugin_version"]
 
         try:
-            plugin_desc = models.GsePluginDesc.objects.get(name=plugin_name)
+            # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免误命中他租户同名插件
+            plugin_desc = models.GsePluginDesc.objects.get(name=plugin_name, tenant_id=get_tenant_id())
         except models.GsePluginDesc.DoesNotExist:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
 
@@ -450,8 +453,11 @@ class PolicyStepAdapter:
             package = self.os_key_pkg_map[self.get_os_key(os_type, cpu_arch)]
         except KeyError:
             # 如果不存在某个系统架构的版本，则获取最大id的版本
+            # 按租户隔离，避免不同租户同名插件互相取到对方的包
             package = (
-                models.Packages.objects.filter(project=self.plugin_name, os=os_type, cpu_arch=cpu_arch)
+                models.Packages.objects.filter(
+                    project=self.plugin_name, os=os_type, cpu_arch=cpu_arch, tenant_id=get_tenant_id()
+                )
                 .order_by("-id")
                 .first()
             )

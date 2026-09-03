@@ -57,7 +57,8 @@ class PolicyHandler:
         if policy_info["category"] != constants.SubscriptionType.POLICY:
             return policy_info
 
-        plugin_desc_obj = models.GsePluginDesc.objects.get(name=policy_info["plugin_name"])
+        # 第三方插件按 (name, tenant_id) 唯一，需带上当前请求租户避免误匹配其他租户同名插件
+        plugin_desc_obj = models.GsePluginDesc.objects.get(name=policy_info["plugin_name"], tenant_id=get_tenant_id())
         policy_info.update(
             {
                 "plugin_info": {
@@ -181,7 +182,8 @@ class PolicyHandler:
 
         # 获取系统类型 - 最新插件包可用版本映射
         proj_os_cpu__latest_version_map = tools.PluginV2Tools.get_proj_os_cpu__latest_version_map(
-            projects=[policy["plugin_name"] for policy in all_policies]
+            projects=[policy["plugin_name"] for policy in all_policies],
+            tenant_id=get_tenant_id(),
         )
 
         # 填充各级策略都需要的通用字段
@@ -365,7 +367,10 @@ class PolicyHandler:
             project=query_params["steps"][0]["id"],
         )
 
-        plugin_obj: models.GsePluginDesc = models.GsePluginDesc.objects.get(name=query_params["steps"][0]["id"])
+        # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免误匹配其他租户同名插件
+        plugin_obj: models.GsePluginDesc = models.GsePluginDesc.objects.get(
+            name=query_params["steps"][0]["id"], tenant_id=get_tenant_id()
+        )
         tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(target_id=plugin_obj.id)
         # 匹配插件版本
         for host_info in result["list"]:
@@ -453,7 +458,14 @@ class PolicyHandler:
             else:
                 plugin_name = query_params["plugin_name"]
 
-            config_templates = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name, is_main=True)
+            # 官方插件配置模板租户为 "system"（全局共享），不按租户隔离，与 fetch_package_infos 保持一致
+            is_official = models.GsePluginDesc.objects.filter(
+                name=plugin_name, category=constants.CategoryType.official
+            ).exists()
+            config_template_filter = {"plugin_name": plugin_name, "is_main": True}
+            if not is_official:
+                config_template_filter["tenant_id"] = get_tenant_id()
+            config_templates = models.PluginConfigTemplate.objects.filter(**config_template_filter)
             query_params["steps"] = [
                 {
                     "config": {

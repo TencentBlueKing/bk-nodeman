@@ -191,7 +191,14 @@ class PluginV2Handler:
 
             create_data["steps"][0]["config"]["job_type"] = job_type
         else:
-            config_templates = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name, is_main=True)
+            # 官方插件配置模板租户为 "system"（全局共享），不按租户隔离，与 fetch_package_infos 保持一致
+            is_official = models.GsePluginDesc.objects.filter(
+                name=plugin_name, category=constants.CategoryType.official
+            ).exists()
+            config_template_filter = {"plugin_name": plugin_name, "is_main": True}
+            if not is_official:
+                config_template_filter["tenant_id"] = get_tenant_id()
+            config_templates = models.PluginConfigTemplate.objects.filter(**config_template_filter)
             create_data: Dict[str, Any] = {
                 **base_create_kwargs,
                 "steps": [

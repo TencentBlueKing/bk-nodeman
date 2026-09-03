@@ -15,7 +15,7 @@ from django.core.paginator import Paginator
 from iam import IAM
 from iam.resource.provider import ListResult, ResourceProvider
 
-from apps.node_man.constants import IamActionType
+from apps.node_man.constants import CategoryType, IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint, Cloud, GsePluginDesc, Subscription
 from apps.utils.local import get_tenant_id
@@ -349,16 +349,21 @@ class PackageResourceProvider(ResourceProvider):
     def fetch_packages(self, condition=None, tenant_id=None):
         """
         获得所有插件包列表
+        插件包为系统级共享资源，仅在 system 租户（全局视图）下可见，且仅返回官方插件；
+        第三方插件包由具体租户在节点管理内自行管理，不在 IAM 中做按租户的资源隔离。
         :return:
         [{
             'id': ap_id ,
             'display_name': ap_name
         }]
         """
+        # 非 system 租户（具体业务租户）不展示插件包资源
         if tenant_id != "system":
             return []
         if not condition:
             condition = {}
+        # system 租户仅展示官方插件
+        condition["category"] = CategoryType.official
         return [
             {"id": plugin["id"], "display_name": plugin["description"]}
             for plugin in list(GsePluginDesc.objects.filter(**condition).values("id", "description"))

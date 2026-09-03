@@ -16,6 +16,7 @@ from rest_framework.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.serializers import base
 from apps.node_man.serializers.host_v2 import NodeSerializer
+from apps.utils import local
 
 
 class PluginEditSerializer(serializers.Serializer):
@@ -138,8 +139,15 @@ class PluginParseSerializer(serializers.Serializer):
     project = serializers.CharField(required=False)
 
     def validate(self, data):
-        # 检查插件是否存在
-        if "project" not in data or models.GsePluginDesc.objects.filter(name=data["project"]).first():
+        # 检查插件是否存在：官方插件全局共享，第三方插件按当前租户隔离，避免跨租户误判存在
+        if "project" not in data:
+            return data
+        tenant_id = local.get_tenant_id()
+        plugin_exists = (
+            models.GsePluginDesc.objects.filter(name=data["project"], category=constants.CategoryType.official).exists()
+            or models.GsePluginDesc.objects.filter(name=data["project"], tenant_id=tenant_id).exists()
+        )
+        if plugin_exists:
             return data
         raise ValidationError("plugin {name} is not exist".format(name=data["project"]))
 
@@ -174,7 +182,13 @@ class PluginListHostSerializer(base.HostSearchSerializer):
     nodes = serializers.ListField(label=_("拓扑节点列表"), child=NodeSerializer(), required=False)
 
     def validate(self, data):
-        if not models.GsePluginDesc.objects.filter(name=data["project"]).exists():
+        # 官方插件全局共享，第三方插件按当前租户隔离
+        tenant_id = local.get_tenant_id()
+        plugin_exists = (
+            models.GsePluginDesc.objects.filter(name=data["project"], category=constants.CategoryType.official).exists()
+            or models.GsePluginDesc.objects.filter(name=data["project"], tenant_id=tenant_id).exists()
+        )
+        if not plugin_exists:
             raise ValidationError(_("插件[{project}] 不存在").format(project=data["project"]))
         return data
 
@@ -205,7 +219,15 @@ class PluginOperateSerializer(serializers.Serializer):
     system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
 
     def validate(self, data):
-        if models.GsePluginDesc.objects.filter(name=data["plugin_name"]).first() is None:
+        # 官方插件全局共享，第三方插件按当前租户隔离
+        tenant_id = local.get_tenant_id()
+        plugin_exists = (
+            models.GsePluginDesc.objects.filter(
+                name=data["plugin_name"], category=constants.CategoryType.official
+            ).exists()
+            or models.GsePluginDesc.objects.filter(name=data["plugin_name"], tenant_id=tenant_id).exists()
+        )
+        if not plugin_exists:
             raise exceptions.PluginNotExistError(_("不存在名称为: {name} 的插件").format(name=data["plugin_name"]))
 
         if data["job_type"] == constants.JobType.MAIN_INSTALL_PLUGIN and not data["steps"]:

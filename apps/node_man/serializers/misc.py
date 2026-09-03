@@ -37,6 +37,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
     process_name = serializers.CharField(required=False, max_length=128)
     port_range = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     need_delegate = serializers.BooleanField(default=True)
+    tenant_id = serializers.CharField(required=False, max_length=64, default="default")
 
     os = serializers.ChoiceField(required=False, choices=PLUGIN_OS_CHOICES)
 
@@ -63,6 +64,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
             "process_name",
             "port_range",
             "need_delegate",
+            "tenant_id",
         )
 
     def create(self, validated_data):
@@ -71,6 +73,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
             "project": validated_data["project"],
             "os": validated_data["os"],
             "plugin_package_id": validated_data["plugin_package_id"],
+            "tenant_id": validated_data["tenant_id"],
         }
         process_info, created = ProcControl.objects.update_or_create(defaults=validated_data, **data)
         return process_info

@@ -605,8 +605,12 @@ def create_pkg_record(
     yaml_config = pkg_parse_info["yaml_config"]
 
     # 判断是否已经由插件描述信息，需要写入
+    # 第三方插件按租户隔离（避免不同租户同名插件描述互相覆盖）；官方插件多租户共享，不加 tenant_id 条件
+    desc_lookup = {"name": project}
+    if is_external:
+        desc_lookup["tenant_id"] = tenant_id
     desc, created = models.GsePluginDesc.objects.update_or_create(
-        name=project,
+        **desc_lookup,
         defaults=dict(
             description=yaml_config.get("description", ""),
             scenario=yaml_config.get("scenario", ""),
@@ -633,12 +637,14 @@ def create_pkg_record(
         )
 
     # 写入插件包信息
+    # 去重条件包含 tenant_id，不同租户的同名同版本包各自独立，避免互相覆盖
     packages_queryset = models.Packages.objects.filter(
         project=project,
         version=pkg_parse_info["version"],
         os=package_os,
         cpu_arch=cpu_arch,
         pkg_name=pkg_parse_info["pkg_name"],
+        tenant_id=tenant_id,
     )
     if not packages_queryset.exists():
         # 如果之前未有未发布的插件包信息，需要新建
@@ -681,6 +687,7 @@ def create_pkg_record(
                 is_main=config_template_info["is_main"],
                 cpu_arch=cpu_arch,
                 os=package_os,
+                tenant_id=pkg_record.tenant_id,
                 defaults=dict(
                     format=config_template_info["format"],
                     file_path=config_template_info["file_path"],
@@ -707,7 +714,10 @@ def create_pkg_record(
             os.remove(template_file_path)
 
     proc_control, __ = models.ProcControl.objects.get_or_create(
-        plugin_package_id=pkg_record.id, defaults=dict(module="gse_plugin", project=pkg_parse_info["project"])
+        plugin_package_id=pkg_record.id,
+        defaults=dict(
+            module="gse_plugin", project=pkg_parse_info["project"], tenant_id=pkg_record.tenant_id
+        ),
     )
 
     # 更新插件包相关路径
@@ -771,7 +781,14 @@ def create_pkg_record(
         )
 
     # 将插件包上传到存储系统
-    package_target_path = os.path.join(settings.DOWNLOAD_PATH, pkg_record.os, pkg_record.cpu_arch, pkg_record.pkg_name)
+    # 第三方插件按租户隔离：以 tenant_id 作为第一级目录，避免不同租户同名包互相覆盖
+    # 官方插件多租户共享，不加租户前缀以保持路径稳定及存量兼容
+    if is_external:
+        package_target_path = os.path.join(
+            settings.DOWNLOAD_PATH, tenant_id, pkg_record.os, pkg_record.cpu_arch, pkg_record.pkg_name
+        )
+    else:
+        package_target_path = os.path.join(settings.DOWNLOAD_PATH, pkg_record.os, pkg_record.cpu_arch, pkg_record.pkg_name)
     with open(package_tmp_path, mode="rb") as tf:
         # 采用同名覆盖策略，保证同版本插件包仅保存一份
         storage_path = get_storage(file_overwrite=True).save(package_target_path, tf)
@@ -797,7 +814,11 @@ def create_pkg_record(
     pkg_record.md5 = files.md5sum(name=package_tmp_path)
     # 这里没有加上包名，是因为原本脚本(bkee/bkce)中就没有加上，为了防止已有逻辑异常，保持一致
     # 后面有哪位发现这里不适用了，可以一并修改
-    pkg_record.location = f"http://{os.getenv('LAN_IP')}/download/{package_os}/{cpu_arch}"
+    # 第三方插件下载地址带租户前缀，与存储路径保持一致；官方插件保持一致
+    if is_external:
+        pkg_record.location = f"http://{os.getenv('LAN_IP')}/download/{tenant_id}/{package_os}/{cpu_arch}"
+    else:
+        pkg_record.location = f"http://{os.getenv('LAN_IP')}/download/{package_os}/{cpu_arch}"
 
     pkg_record.save()
 

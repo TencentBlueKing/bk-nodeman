@@ -19,6 +19,7 @@ from rest_framework import serializers
 from apps.exceptions import BackendValidationError, ValidationError
 from apps.node_man import constants, models
 from apps.node_man.models import DownloadRecord, GsePluginDesc, Packages
+from apps.utils.local import get_tenant_id
 
 
 class GatewaySerializer(serializers.Serializer):
@@ -40,10 +41,13 @@ class PluginInfoSerializer(GatewaySerializer):
     os = serializers.CharField(max_length=32, allow_null=True, required=False)
 
     def validate(self, attrs):
-        # 检查插件是否存在
-        try:
-            GsePluginDesc.objects.get(name=attrs["name"])
-        except GsePluginDesc.DoesNotExist:
+        # 官方插件全局共享，第三方插件按当前租户隔离
+        tenant_id = get_tenant_id()
+        plugin_exists = (
+            GsePluginDesc.objects.filter(name=attrs["name"], category=constants.CategoryType.official).exists()
+            or GsePluginDesc.objects.filter(name=attrs["name"], tenant_id=tenant_id).exists()
+        )
+        if not plugin_exists:
             raise BackendValidationError("plugin {name} is not exist".format(name=attrs["name"]))
         return attrs
 
@@ -368,8 +372,15 @@ class PluginParseSerializer(GatewaySerializer):
     project = serializers.CharField(required=False)
 
     def validate(self, data):
-        # 检查插件是否存在
-        if "project" not in data or GsePluginDesc.objects.filter(name=data["project"]).first():
+        # 官方插件全局共享，第三方插件按当前租户隔离
+        if "project" not in data:
+            return data
+        tenant_id = get_tenant_id()
+        plugin_exists = (
+            GsePluginDesc.objects.filter(name=data["project"], category=constants.CategoryType.official).exists()
+            or GsePluginDesc.objects.filter(name=data["project"], tenant_id=tenant_id).exists()
+        )
+        if plugin_exists:
             return data
         raise ValidationError("plugin {name} is not exist".format(name=data["project"]))
 

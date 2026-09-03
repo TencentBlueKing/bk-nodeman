@@ -1,0 +1,42 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-节点管理(BlueKing-BK-NODEMAN) available.
+Copyright (C) 2017-2022 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('node_man', '0091_gseplugindesc_name_tenant_unique'),
+    ]
+
+    operations = [
+        # 插件配置模板增加租户ID，支持多租户同名插件配置模板共存
+        migrations.AddField(
+            model_name='pluginconfigtemplate',
+            name='tenant_id',
+            field=models.CharField(
+                blank=True,
+                db_index=True,
+                default='default',
+                max_length=64,
+                null=True,
+                verbose_name='租户ID',
+            ),
+        ),
+        # 联合唯一约束并入 tenant_id，保证同一租户内插件配置模板唯一
+        migrations.AlterUniqueTogether(
+            name='pluginconfigtemplate',
+            unique_together={
+                ('plugin_name', 'plugin_version', 'name', 'version', 'is_main', 'os', 'cpu_arch', 'tenant_id')
+            },
+        ),
+    ]

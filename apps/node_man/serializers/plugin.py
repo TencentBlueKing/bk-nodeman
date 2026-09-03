@@ -169,6 +169,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
     debug_cmd = serializers.CharField(required=False, max_length=128)
 
     os = serializers.ChoiceField(required=False, choices=PLUGIN_OS_CHOICES)
+    tenant_id = serializers.CharField(required=False, max_length=64, default="default")
 
     class Meta:
         model = ProcControl
@@ -190,6 +191,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
             "debug_cmd",
             "os",
             "plugin_package_id",
+            "tenant_id",
         )
 
     def create(self, validated_data):
@@ -197,6 +199,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
             "module": validated_data["module"],
             "project": validated_data["project"],
             "os": validated_data["os"],
+            "tenant_id": validated_data["tenant_id"],
         }
         process_info, created = ProcControl.objects.update_or_create(defaults=validated_data, **data)
         return process_info
@@ -260,7 +263,16 @@ class OperateSerializer(serializers.Serializer):
         if attrs.get("plugin_params"):
             if GlobalSettings.get_config(key=GlobalSettings.KeyEnum.DISABLE_STOPPED_PLUGIN.value, default=False):
                 plugin_name = attrs["plugin_params"]["name"]
-                if GsePluginDesc.objects.filter(name=plugin_name, is_ready=False).first() is not None:
+                # 官方插件全局共享，第三方插件按当前租户隔离
+                disabled_plugin_exists = (
+                    GsePluginDesc.objects.filter(
+                        name=plugin_name, is_ready=False, category=constants.CategoryType.official
+                    ).exists()
+                    or GsePluginDesc.objects.filter(
+                        name=plugin_name, is_ready=False, tenant_id=get_tenant_id()
+                    ).exists()
+                )
+                if disabled_plugin_exists:
                     raise ValidationError(_("插件{}已被禁用，不能执行相关操作").format(plugin_name))
             # 把2.0.x 的参数转为 2.1.x 的参数
             attrs["plugin_params_list"] = [attrs.get("plugin_params")]

@@ -921,8 +921,8 @@ class GsePluginDesc(models.Model):
     插件信息表
     """
 
-    # 插件名需要全局唯一，防止冲突
-    name = models.CharField(_("插件名"), max_length=32, unique=True, db_index=True)
+    # 同一租户下插件名唯一，防止冲突；跨租户允许同名插件共存
+    name = models.CharField(_("插件名"), max_length=32, db_index=True)
     description = models.TextField(_("插件描述"))
     scenario = models.TextField(_("使用场景"))
     description_en = models.TextField(_("英文插件描述"), null=True, blank=True)
@@ -961,6 +961,7 @@ class GsePluginDesc(models.Model):
     class Meta:
         verbose_name = _("插件信息（GsePluginDesc）")
         verbose_name_plural = _("插件信息（GsePluginDesc）")
+        unique_together = [("name", "tenant_id")]
 
     def __unicode__(self):
         return self.name
@@ -986,7 +987,7 @@ class GsePluginDesc(models.Model):
         return package
 
     def get_control_by_os(self, os):
-        control = ProcControl.objects.filter(project=self.name, os=os).order_by("id").last()
+        control = ProcControl.objects.filter(project=self.name, os=os, tenant_id=self.tenant_id).order_by("id").last()
         return control
 
     def get_packages(self, version=None, os=None, cpu_arch=None):
@@ -1087,7 +1088,8 @@ class Packages(models.Model):
     @property
     def plugin_desc(self):
         if not hasattr(self, "_plugin_desc"):
-            self._plugin_desc = GsePluginDesc.objects.get(name=self.project)
+            # 第三方插件按 (name, tenant_id) 唯一，需带上租户条件避免误匹配其他租户同名插件
+            self._plugin_desc = GsePluginDesc.objects.get(name=self.project, tenant_id=self.tenant_id)
         return self._plugin_desc
 
     @property
@@ -1100,7 +1102,14 @@ class Packages(models.Model):
         return self._proc_control
 
     @classmethod
-    def export_plugins(cls, project: str, version: str, os_type: str = None, cpu_arch: str = None) -> Dict[str, str]:
+    def export_plugins(
+        cls,
+        project: str,
+        version: str,
+        os_type: str = None,
+        cpu_arch: str = None,
+        tenant_id: str = None,
+    ) -> Dict[str, str]:
         """
         导出指定插件
         !!! 注意：该方法会有打包及同步等高延迟的动作，请勿在同步环境(uwsgi)下使用 !!!
@@ -1108,11 +1117,14 @@ class Packages(models.Model):
         :param version: 导出的插件版本
         :param cpu_arch: cpu类型
         :param os_type: 操作系统类型
+        :param tenant_id: 租户ID，用于多租户隔离，避免跨租户导出同名第三方插件
         :return: {
             "file_path": ""/data/bkee/public/bk_nodeman/export/plugins-1.0.tgz
         } | raise Exception
         """
         filter_params = {"project": project, "version": version}
+        if tenant_id is not None:
+            filter_params["tenant_id"] = tenant_id
         if os_type is not None:
             filter_params["os"] = os_type
         if cpu_arch is not None:
@@ -1263,6 +1275,9 @@ class ProcControl(models.Model):
     module = models.CharField(_("模块名"), max_length=32)
     project = models.CharField(_("工程名"), max_length=32)
     plugin_package_id = models.IntegerField(_("记录对应的插件包ID"), db_index=True, default=0)
+
+    # 租户ID，用于多租户隔离；不同租户的同名插件进程控制信息各自独立
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     install_path = models.TextField(_("安装路径"))
     log_path = models.TextField(_("日志路径"))
@@ -1628,6 +1643,9 @@ class PluginConfigTemplate(models.Model):
     version = models.CharField(_("配置模板版本"), max_length=128, db_index=True)
     is_main = models.BooleanField(_("是否主配置"), default=False, db_index=True)
 
+    # 租户ID，用于多租户隔离；同一租户下插件配置模板保持唯一，跨租户允许同名插件模板共存
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
+
     format = models.CharField(_("文件格式"), max_length=16)
     file_path = models.CharField(_("文件在该插件目录中相对路径"), max_length=128)
     content = models.TextField(_("配置内容"))
@@ -1650,8 +1668,8 @@ class PluginConfigTemplate(models.Model):
         verbose_name_plural = _("插件配置文件模板表")
         # 唯一性限制
         unique_together = (
-            # 对于同一个插件的同一个版本，同名配置文件只能存在一个
-            ("plugin_name", "plugin_version", "name", "version", "is_main", "os", "cpu_arch"),
+            # 对于同一个租户下同一个插件的同一个版本，同名配置文件只能存在一个
+            ("plugin_name", "plugin_version", "name", "version", "is_main", "os", "cpu_arch", "tenant_id"),
         )
 
     def __str__(self):
