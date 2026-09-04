@@ -384,6 +384,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                     version=params["version"],
                     os=os_type.lower(),
                     cpu_arch=cpu_arch.lower(),
+                    tenant_id=get_tenant_id(),
                     defaults=dict(
                         plugin_name=params["plugin_name"],
                         plugin_version=params["plugin_version"],
@@ -395,6 +396,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                         is_release_version=params["is_release_version"],
                         os=os_type.lower(),
                         cpu_arch=cpu_arch.lower(),
+                        tenant_id=get_tenant_id(),
                         creator=bk_username,
                         source_app_code=bk_app_code,
                     ),
@@ -425,6 +427,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             plugin_templates = models.PluginConfigTemplate.objects.filter(id__in=params["id"])
         else:
             plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+
+        # 写操作按租户锁权限，避免误改其他租户同名配置模板的发布状态；
+        # 官方模板由注册它的官方租户发布，tenant_id 一致自然命中。故意不加官方兜底，否则任何租户都能改写官方模板发布状态
+        plugin_templates = plugin_templates.filter(tenant_id=get_tenant_id())
 
         # 更改发布状态
         plugin_templates.update(is_release_version=True)
@@ -471,7 +477,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             if "id" in params:
                 plugin_template = models.PluginConfigTemplate.objects.get(id=params["id"])
             else:
-                plugin_template = models.PluginConfigTemplate.objects.get(**tools.add_default_platform(params))
+                query_params = tools.add_default_platform(params)
+                # 官方插件配置模板全局共享（不过滤租户），第三方插件按当前租户隔离，避免跨租户取他租户同名模板
+                is_official = models.GsePluginDesc.objects.filter(
+                    name=query_params.get("plugin_name"), category=constants.CategoryType.official
+                ).exists()
+                if not is_official:
+                    query_params["tenant_id"] = get_tenant_id()
+                plugin_template = models.PluginConfigTemplate.objects.get(**query_params)
         except models.PluginConfigTemplate.DoesNotExist:
             raise ValidationError("plugin template not found")
 
@@ -504,7 +517,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_templates = models.PluginConfigTemplate.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**tools.add_default_platform(params))
+            query_params = tools.add_default_platform(params)
+            # 官方插件配置模板全局共享（不过滤租户），第三方插件按当前租户隔离，避免跨租户取他租户同名模板
+            is_official = models.GsePluginDesc.objects.filter(
+                name=query_params.get("plugin_name"), category=constants.CategoryType.official
+            ).exists()
+            if not is_official:
+                query_params["tenant_id"] = get_tenant_id()
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**query_params)
 
         result = []
         for template in plugin_templates:
@@ -544,7 +564,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_instances = models.PluginConfigInstance.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**tools.add_default_platform(params))
+            query_params = tools.add_default_platform(params)
+            # 官方插件配置模板全局共享（不过滤租户），第三方插件按当前租户隔离，避免跨租户取他租户同名模板
+            is_official = models.GsePluginDesc.objects.filter(
+                name=query_params.get("plugin_name"), category=constants.CategoryType.official
+            ).exists()
+            if not is_official:
+                query_params["tenant_id"] = get_tenant_id()
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**query_params)
             plugin_instances = models.PluginConfigInstance.objects.filter(
                 plugin_config_template__in=[template.id for template in plugin_templates]
             )
