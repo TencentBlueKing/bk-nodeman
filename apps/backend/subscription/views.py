@@ -788,10 +788,12 @@ class SubscriptionViewSet(APIViewSet):
                 task_id__job_info_map[task_id] = job
 
         # 部署方式
+        # 官方插件全局共享，第三方插件按当前租户隔离，避免跨租户串同名插件的 deploy_type
         subscription_plugin_names = [subscription["plugin_name"] for subscription in subscriptions]
-        deploy_types = models.GsePluginDesc.objects.filter(name__in=subscription_plugin_names).values(
-            "name", "deploy_type"
-        )
+        deploy_types = models.GsePluginDesc.objects.filter(
+            Q(name__in=subscription_plugin_names, category=constants.CategoryType.official)
+            | Q(name__in=subscription_plugin_names, tenant_id=local.get_tenant_id())
+        ).values("name", "deploy_type")
         deploy_type_map = {deploy_type["name"]: deploy_type["deploy_type"] for deploy_type in deploy_types}
 
         # 版本

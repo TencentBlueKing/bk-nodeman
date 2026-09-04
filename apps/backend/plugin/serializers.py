@@ -117,7 +117,8 @@ class CreatePluginConfigTemplateSerializer(GatewaySerializer, PlatformSerializer
             raise ValidationError("the md5 of content is not match")
 
         # 对应插件是否存在
-        packages = Packages.objects.filter(project=attrs["plugin_name"])
+        # 第三方插件按 (project, tenant_id) 隔离，避免跨租户误判他租户同名插件存在
+        packages = Packages.objects.filter(project=attrs["plugin_name"], tenant_id=get_tenant_id())
         # 特殊版本不检查
         if attrs["plugin_version"] != "*":
             packages = packages.filter(version=attrs["plugin_version"])

@@ -978,10 +978,12 @@ class GsePluginDesc(models.Model):
         return cls.objects.filter(auto_launch=True)
 
     def get_package_by_os(self, os, pkg_name):
+        # 第三方插件按 (project, os, pkg_name, tenant_id) 唯一，需带上租户条件避免跨租户误匹配
         package = Packages.objects.get(
             project=self.name,
             os=os,
             pkg_name=pkg_name,
+            tenant_id=self.tenant_id,
             cpu_arch__in=[constants.CpuType.x86_64, constants.CpuType.powerpc],
         )
         return package
@@ -999,7 +1001,7 @@ class GsePluginDesc(models.Model):
         :param cpu_arch: str CPU架构
         :return: list[Packages]
         """
-        query_params = {"project": self.name}
+        query_params = {"project": self.name, "tenant_id": self.tenant_id}
 
         if os is not None:
             query_params["os"] = os

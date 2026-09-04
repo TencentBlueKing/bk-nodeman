@@ -57,8 +57,23 @@ class PluginHandler(APIModel):
             plugin_name.append(_plugin["name"])
             plugin_version.append(_plugin["version"])
 
+        # 官方插件全局共享，第三方插件按当前租户隔离。
+        # 先反查 plugin_name 中哪些是官方插件，再分官方/第三方构造查询条件，避免跨租户串包或漏查官方包
+        official_names = set(
+            GsePluginDesc.objects.filter(
+                name__in=plugin_name, category=const.CategoryType.official
+            ).values_list("name", flat=True)
+        )
+
         # 查询所有相关联的插件包信息
-        packages = Packages.objects.filter(project__in=plugin_name, version__in=plugin_version).values()
+        # 官方插件：不过滤租户，全局可见；第三方插件：按 (project, version, tenant_id) 隔离
+        pkg_q = Q()
+        if official_names:
+            pkg_q |= Q(project__in=official_names)
+        external_names = set(plugin_name) - official_names
+        if external_names:
+            pkg_q |= Q(project__in=external_names, version__in=plugin_version, tenant_id=local.get_tenant_id())
+        packages = Packages.objects.filter(pkg_q, version__in=plugin_version).values()
         package_version_map = {}
         package_ids = []
         for package in packages:
@@ -72,9 +87,13 @@ class PluginHandler(APIModel):
             package_control_map[control["plugin_package_id"]] = control
 
         # 查询插件包配置文件
-        package_templates = PluginConfigTemplate.objects.filter(
-            plugin_name__in=plugin_name, plugin_version__in=plugin_version
-        ).values()
+        # 官方模板：全局可见（不过滤租户）；第三方模板：按 (plugin_name, plugin_version, tenant_id) 隔离
+        tmpl_q = Q()
+        if official_names:
+            tmpl_q |= Q(plugin_name__in=official_names)
+        if external_names:
+            tmpl_q |= Q(plugin_name__in=external_names, plugin_version__in=plugin_version, tenant_id=local.get_tenant_id())
+        package_templates = PluginConfigTemplate.objects.filter(tmpl_q, plugin_version__in=plugin_version).values()
         package_version_template_map = {}
         for package in package_templates:
             package_version_template_map[f"{package['plugin_name']}{package['plugin_version']}"] = package
@@ -421,8 +440,12 @@ class PluginHandler(APIModel):
         """
         获取某个插件包列表
         """
-        # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免误匹配其他租户同名插件
-        plugin_obj = GsePluginDesc.objects.get(name=project, tenant_id=local.get_tenant_id())
+        # 官方插件全局共享（tenant_id 恒为 default），第三方插件按 (name, tenant_id) 隔离
+        # 用官方/第三方双条件，避免多租户下官方插件因 tenant_id 不匹配而查不到
+        plugin_obj = GsePluginDesc.objects.get(
+            Q(name=project, category=const.CategoryType.official)
+            | Q(name=project, tenant_id=local.get_tenant_id())
+        )
 
         # 查找置顶版本
         top_tag: Tag = targets.PluginTargetHelper.get_top_tag_or_none(plugin_obj.id)

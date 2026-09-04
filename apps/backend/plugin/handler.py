@@ -28,6 +28,7 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.utils import files
+from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -141,7 +142,14 @@ class PluginHandler:
             }
         )
         # 筛选可用包，规则：启用，版本降序
-        packages = models.Packages.objects.filter(project=gse_plugin_desc["name"]).values(
+        # 官方插件全局共享（不过滤租户），第三方插件按 (project, tenant_id) 隔离，避免跨租户串包
+        is_official = models.GsePluginDesc.objects.filter(
+            id=plugin_id, category=constants.CategoryType.official
+        ).exists()
+        pkg_filter = {"project": gse_plugin_desc["name"]}
+        if not is_official:
+            pkg_filter["tenant_id"] = get_tenant_id()
+        packages = models.Packages.objects.filter(**pkg_filter).values(
             *["id", "pkg_name", "module", "project", "version", "os", "cpu_arch"]
             + ["pkg_mtime", "creator", "is_ready", "is_release_version", "tenant_id"]
         )

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, List, Optional, Set, Union
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import permissions
 
@@ -28,7 +29,7 @@ from apps.node_man.exceptions import (
 )
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 
 
 class GlobalSettingPermission(permissions.BasePermission):
@@ -231,8 +232,12 @@ class PackagePermission(permissions.BasePermission):
                 plugin_names = list(
                     models.Packages.objects.filter(id__in=plugin_package_ids).values_list("project", flat=True)
                 )
+                # 官方插件全局共享，第三方插件按当前租户隔离，避免跨租户串同名插件的权限判断
                 plugin_ids = list(
-                    models.GsePluginDesc.objects.filter(name__in=plugin_names).values_list("id", flat=True)
+                    models.GsePluginDesc.objects.filter(
+                        Q(name__in=plugin_names, category=constants.CategoryType.official)
+                        | Q(name__in=plugin_names, tenant_id=get_tenant_id())
+                    ).values_list("id", flat=True)
                 )
                 return not set(plugin_ids) - set(perms[IamActionType.plugin_pkg_operate])
 

@@ -191,7 +191,8 @@ class PluginV2Handler:
 
             create_data["steps"][0]["config"]["job_type"] = job_type
         else:
-            # 官方插件配置模板租户为 "system"（全局共享），不按租户隔离，与 fetch_package_infos 保持一致
+            # 官方插件配置模板的 tenant_id 实际被写成注册它的真实租户（非 "system"），
+            # 读取侧对官方插件不过滤租户以实现全局共享，第三方插件按当前租户隔离，与 fetch_package_infos 保持一致
             is_official = models.GsePluginDesc.objects.filter(
                 name=plugin_name, category=constants.CategoryType.official
             ).exists()

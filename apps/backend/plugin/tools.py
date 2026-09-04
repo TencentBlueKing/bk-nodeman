@@ -29,6 +29,7 @@ from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import enum, env, files
+from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -297,7 +298,12 @@ def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
 
 
 def parse_package(
-    pkg_absolute_path: str, package_os: str, cpu_arch: str, is_update: bool, need_detail: bool = False
+    pkg_absolute_path: str,
+    package_os: str,
+    cpu_arch: str,
+    is_update: bool,
+    need_detail: bool = False,
+    tenant_id: str = None,
 ) -> Dict[str, Any]:
     """
     解析插件包
@@ -306,6 +312,7 @@ def parse_package(
     :param cpu_arch: cpu架构
     :param is_update: 是否校验更新
     :param need_detail: 是否需要解析详情，用于create_package_record创建插件包记录
+    :param tenant_id: 租户ID，用于多租户下按 (project, os, cpu_arch, tenant_id) 查重，避免跨租户误判同名插件
     :return:
     """
     pkg_parse_info = {
@@ -413,7 +420,11 @@ def parse_package(
         pkg_parse_info["message"] = _("project.yaml 中 category 配置异常，请确认后重试")
         return pkg_parse_info
 
-    packages_queryset = models.Packages.objects.filter(project=yaml_config["name"], os=package_os, cpu_arch=cpu_arch)
+    # 第三方插件按 (project, os, cpu_arch, tenant_id) 唯一，需带上租户条件避免跨租户误判同名插件
+    pkg_lookup = {"project": yaml_config["name"], "os": package_os, "cpu_arch": cpu_arch}
+    if tenant_id is not None:
+        pkg_lookup["tenant_id"] = tenant_id
+    packages_queryset = models.Packages.objects.filter(**pkg_lookup)
 
     # 判断是否为新增插件
     if not packages_queryset.exists():
@@ -595,7 +606,12 @@ def create_pkg_record(
     :return: True | raise Exception
     """
     pkg_parse_info = parse_package(
-        pkg_absolute_path=pkg_absolute_path, package_os=package_os, cpu_arch=cpu_arch, is_update=False, need_detail=True
+        pkg_absolute_path=pkg_absolute_path,
+        package_os=package_os,
+        cpu_arch=cpu_arch,
+        is_update=False,
+        need_detail=True,
+        tenant_id=tenant_id,
     )
     logger.info(f"pkg_absolute_path -> {pkg_absolute_path}, pkg_parse_info -> {pkg_parse_info}")
     if not pkg_parse_info["result"]:

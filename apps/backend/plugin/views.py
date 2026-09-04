@@ -970,6 +970,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 package_os=package_info["package_os"],
                 cpu_arch=package_info["cpu_arch"],
                 is_update=params["is_update"],
+                tenant_id=get_tenant_id(),
             )
             pkg_parse_result.update(
                 {
