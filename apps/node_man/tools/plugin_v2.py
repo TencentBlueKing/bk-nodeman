@@ -221,6 +221,7 @@ class PluginV2Tools:
             "location",
             "is_ready",
             "is_release_version",
+            "tenant_id",
         )
 
         return list(package_infos)

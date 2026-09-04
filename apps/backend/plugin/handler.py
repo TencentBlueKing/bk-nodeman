@@ -143,7 +143,7 @@ class PluginHandler:
         # 筛选可用包，规则：启用，版本降序
         packages = models.Packages.objects.filter(project=gse_plugin_desc["name"]).values(
             *["id", "pkg_name", "module", "project", "version", "os", "cpu_arch"]
-            + ["pkg_mtime", "creator", "is_ready", "is_release_version"]
+            + ["pkg_mtime", "creator", "is_ready", "is_release_version", "tenant_id"]
         )
         plugin_packages = []
         # 按支持的cpu, os对包进行分类
