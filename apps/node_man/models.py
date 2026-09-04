@@ -1090,8 +1090,14 @@ class Packages(models.Model):
     @property
     def plugin_desc(self):
         if not hasattr(self, "_plugin_desc"):
-            # 第三方插件按 (name, tenant_id) 唯一，需带上租户条件避免误匹配其他租户同名插件
-            self._plugin_desc = GsePluginDesc.objects.get(name=self.project, tenant_id=self.tenant_id)
+            # 官方插件全局共享（读取侧靠 category=official 兜底，不过滤租户），第三方插件按 (name, tenant_id) 隔离
+            # 避免多租户下官方插件因 GsePluginDesc.tenant_id 与 Packages.tenant_id 不一致（如 system/default）而查不到
+            try:
+                self._plugin_desc = GsePluginDesc.objects.get(
+                    name=self.project, category=constants.CategoryType.official
+                )
+            except GsePluginDesc.DoesNotExist:
+                self._plugin_desc = GsePluginDesc.objects.get(name=self.project, tenant_id=self.tenant_id)
         return self._plugin_desc
 
     @property
