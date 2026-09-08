@@ -663,9 +663,20 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             os_type: str = host.os_type.lower()
             cpu_arch: str = host.cpu_arch
             try:
-                package: models.Packages = models.Packages.objects.get(
-                    project=params["plugin_name"], version=params["version"], os=os_type, cpu_arch=cpu_arch
-                )
+                # 官方插件全局共享（不过滤租户），第三方插件按真实租户隔离。
+                # 多租户迁移后同一 (project, version, os, cpu_arch) 可能在不同租户各有一条，
+                # 若不带上 tenant_id 会匹配多行触发 MultipleObjectsReturned。
+                pkg_query = {
+                    "project": params["plugin_name"],
+                    "version": params["version"],
+                    "os": os_type,
+                    "cpu_arch": cpu_arch,
+                }
+                if not models.GsePluginDesc.objects.filter(
+                    name=params["plugin_name"], category=constants.CategoryType.official
+                ).exists():
+                    pkg_query["tenant_id"] = get_tenant_id()
+                package: models.Packages = models.Packages.objects.get(**pkg_query)
             except models.Packages.DoesNotExist:
                 raise exceptions.PluginNotExistError(
                     plugin_name=params["plugin_name"], os_type=os_type, cpu_arch=cpu_arch
