@@ -979,17 +979,24 @@ class GsePluginDesc(models.Model):
 
     def get_package_by_os(self, os, pkg_name):
         # 第三方插件按 (project, os, pkg_name, tenant_id) 唯一，需带上租户条件避免跨租户误匹配
-        package = Packages.objects.get(
-            project=self.name,
-            os=os,
-            pkg_name=pkg_name,
-            tenant_id=self.tenant_id,
-            cpu_arch__in=[constants.CpuType.x86_64, constants.CpuType.powerpc],
-        )
+        # 官方插件全局共享（不过滤租户），与 serializers.py 中官方插件不过滤 tenant_id 的范式一致
+        query_params = {
+            "project": self.name,
+            "os": os,
+            "pkg_name": pkg_name,
+            "cpu_arch__in": [constants.CpuType.x86_64, constants.CpuType.powerpc],
+        }
+        if not self.is_official:
+            query_params["tenant_id"] = self.tenant_id
+        package = Packages.objects.get(**query_params)
         return package
 
     def get_control_by_os(self, os):
-        control = ProcControl.objects.filter(project=self.name, os=os, tenant_id=self.tenant_id).order_by("id").last()
+        # 官方插件全局共享（不过滤租户），第三方插件按 (project, os, tenant_id) 隔离
+        query_params = {"project": self.name, "os": os}
+        if not self.is_official:
+            query_params["tenant_id"] = self.tenant_id
+        control = ProcControl.objects.filter(**query_params).order_by("id").last()
         return control
 
     def get_packages(self, version=None, os=None, cpu_arch=None):
@@ -1001,7 +1008,10 @@ class GsePluginDesc(models.Model):
         :param cpu_arch: str CPU架构
         :return: list[Packages]
         """
-        query_params = {"project": self.name, "tenant_id": self.tenant_id}
+        # 官方插件全局共享（不过滤租户），第三方插件按 (project, tenant_id) 隔离
+        query_params = {"project": self.name}
+        if not self.is_official:
+            query_params["tenant_id"] = self.tenant_id
 
         if os is not None:
             query_params["os"] = os
@@ -1036,7 +1046,17 @@ class GsePluginDesc(models.Model):
         if package_ids:
             packages = Packages.objects.filter(id__in=package_ids)
         else:
-            packages = cls(name=query_params.pop("name")).get_packages(**query_params)
+            # 注意：不能用 cls(name=...) 直接实例化，该对象不走 DB 查询，tenant_id 会取到模型默认值 'default'，
+            # 导致 get_packages 按租户过滤时查不到真实租户的包，最终 md5 比对失败。必须从 DB 取真实记录。
+            name = query_params.pop("name")
+            from apps.utils.local import get_tenant_id
+
+            plugin_desc_qs = cls.objects.filter(name=name)
+            # 与 serializers.py 一致：官方插件全局共享（不过滤租户），第三方插件按真实租户隔离
+            if not plugin_desc_qs.filter(category=constants.CategoryType.official).exists():
+                plugin_desc_qs = plugin_desc_qs.filter(tenant_id=get_tenant_id())
+            plugin_desc = plugin_desc_qs.first()
+            packages = plugin_desc.get_packages(**query_params)
 
         # 比对md5
         if "|".join(sorted(md5_list)) != "|".join(sorted([package.md5 for package in packages])):
