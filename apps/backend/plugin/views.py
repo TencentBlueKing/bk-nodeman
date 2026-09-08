@@ -700,6 +700,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 is_main=params.get("is_main", False),
                 creator=request.user.username,
                 category=models.Subscription.CategoryType.DEBUG,
+                tenant_id=get_tenant_id(),
             )
 
             # 创建订阅步骤

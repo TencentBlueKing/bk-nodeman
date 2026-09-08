@@ -24,7 +24,6 @@ from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.core.tag.targets.plugin import PluginTargetHelper
 from apps.node_man import constants, models
-from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -111,6 +110,12 @@ class PolicyStepAdapter:
         self.plugin_name = self.config["plugin_name"]
         self.selected_pkg_infos: List[Dict] = self.config["details"]
 
+    @property
+    def tenant_id(self) -> str:
+        # 租户取自订阅对象本身，而非 get_tenant_id()（依赖 request/celery 线程本地变量，
+        # 在异步任务上下文中不可靠，会回退为 default/system 导致官方/第三方插件查询失败）
+        return self.subscription.tenant_id or "default"
+
         self.except_os_key_pkg_map: Dict[str, Dict] = {
             self.get_os_key(pkg["os"], pkg["cpu_arch"]): pkg for pkg in self.selected_pkg_infos
         }
@@ -147,7 +152,7 @@ class PolicyStepAdapter:
             # 用官方/第三方双条件，避免多租户下官方插件因 tenant_id 不匹配而查不到
             plugin_desc = models.GsePluginDesc.objects.get(
                 Q(name=self.plugin_name, category=constants.CategoryType.official)
-                | Q(name=self.plugin_name, tenant_id=get_tenant_id())
+                | Q(name=self.plugin_name, tenant_id=self.tenant_id)
             )
         except models.GsePluginDesc.DoesNotExist:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
@@ -299,7 +304,7 @@ class PolicyStepAdapter:
         is_official = models.GsePluginDesc.objects.filter(
             name=plugin_name, category=constants.CategoryType.official
         ).exists()
-        pkg_tenant_filter = {} if is_official else {"tenant_id": get_tenant_id()}
+        pkg_tenant_filter = {} if is_official else {"tenant_id": self.tenant_id}
 
         if plugin_version != latest_flag or is_tag:
             # 如果 latest 是 tag，走取指定版本的逻辑
@@ -389,7 +394,7 @@ class PolicyStepAdapter:
             # 官方插件全局共享，第三方插件按 (name, tenant_id) 隔离
             plugin_desc = models.GsePluginDesc.objects.get(
                 Q(name=plugin_name, category=constants.CategoryType.official)
-                | Q(name=plugin_name, tenant_id=get_tenant_id())
+                | Q(name=plugin_name, tenant_id=self.tenant_id)
             )
         except models.GsePluginDesc.DoesNotExist:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
@@ -476,7 +481,7 @@ class PolicyStepAdapter:
             ).exists()
             pkg_filter = {"project": self.plugin_name, "os": os_type, "cpu_arch": cpu_arch}
             if not is_official:
-                pkg_filter["tenant_id"] = get_tenant_id()
+                pkg_filter["tenant_id"] = self.tenant_id
             package = models.Packages.objects.filter(**pkg_filter).order_by("-id").first()
             if not package:
                 msg = _("插件 [{name}] 不支持 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version}").format(
@@ -510,7 +515,7 @@ class PolicyStepAdapter:
             is_official = models.GsePluginDesc.objects.filter(
                 name=package.project, category=constants.CategoryType.official
             ).exists()
-            tmpl_tenant_filter = {} if is_official else {"tenant_id": get_tenant_id()}
+            tmpl_tenant_filter = {} if is_official else {"tenant_id": self.tenant_id}
             for config_template in config["config_templates"]:
                 config_tmpl = (
                     models.PluginConfigTemplate.objects.filter(
@@ -548,11 +553,13 @@ class PolicyStepAdapter:
                 if version_str in tag_name__obj_map:
                     version_str = tag_name__obj_map[version_str].target_version
                 if version.Version(version_str) > version.Version(biz_version):
-                    package = self.get_biz_max_package(package.project, package.os, package.cpu_arch, biz_version)
+                    package = self.get_biz_max_package(
+                        package.project, package.os, package.cpu_arch, biz_version, self.tenant_id
+                    )
         return package
 
     @staticmethod
-    def get_biz_max_package(plugin_name: str, os_type: str, cpu_arch: str, biz_version: str):
+    def get_biz_max_package(plugin_name: str, os_type: str, cpu_arch: str, biz_version: str, tenant_id: str = "default"):
         """获取业务锁定版本的插件包"""
         # 官方插件全局共享（不过滤租户），第三方插件按当前租户隔离，避免跨租户串包
         is_official = models.GsePluginDesc.objects.filter(
@@ -560,7 +567,7 @@ class PolicyStepAdapter:
         ).exists()
         pkg_filter = {"project": plugin_name, "os": os_type, "cpu_arch": cpu_arch}
         if not is_official:
-            pkg_filter["tenant_id"] = get_tenant_id()
+            pkg_filter["tenant_id"] = tenant_id
         packages = models.Packages.objects.filter(**pkg_filter)
         lte_biz_version_packages = []
         for package in packages:
