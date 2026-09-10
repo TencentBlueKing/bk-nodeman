@@ -93,7 +93,16 @@ class PluginTargetHelper(base.BaseTargetHelper):
                 os__in=os_types,
                 cpu_arch__in=cpu_arches,
                 tenant_id__in=tenant_ids,
-            ).values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os", "plugin_name")
+            ).values(
+                "id", 
+                "name", 
+                "version", 
+                "is_main", 
+                "plugin_version", 
+                "cpu_arch", 
+                "os", 
+                "plugin_name"
+            ).order_by("-id")
         )
 
         # 以 plugin_name & os & cpu_arch & plugin_version 作为唯一标识，聚合配置模板
