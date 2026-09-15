@@ -45,6 +45,14 @@ logger = logging.getLogger("app")
 
 class PolicyHandler:
     @staticmethod
+    def get_plugin_desc(plugin_name: str) -> models.GsePluginDesc:
+        """Get plugin desc with official plugin compatibility."""
+        return models.GsePluginDesc.objects.get(
+            Q(name=plugin_name, category=constants.CategoryType.official)
+            | Q(name=plugin_name, tenant_id=get_tenant_id())
+        )
+
+    @staticmethod
     def policy_info(policy_id: int) -> Dict[str, Any]:
         """
         策略详细
@@ -59,10 +67,7 @@ class PolicyHandler:
 
         # 官方插件全局共享（tenant_id 恒为 default），第三方插件按 (name, tenant_id) 隔离
         # 用官方/第三方双条件，避免多租户下官方插件因 tenant_id 不匹配而查不到
-        plugin_desc_obj = models.GsePluginDesc.objects.get(
-            Q(name=policy_info["plugin_name"], category=constants.CategoryType.official)
-            | Q(name=policy_info["plugin_name"], tenant_id=get_tenant_id())
-        )
+        plugin_desc_obj = PolicyHandler.get_plugin_desc(policy_info["plugin_name"])
         policy_info.update(
             {
                 "plugin_info": {
@@ -371,10 +376,8 @@ class PolicyHandler:
             project=query_params["steps"][0]["id"],
         )
 
-        # 第三方插件按 (name, tenant_id) 唯一，需带上当前租户避免误匹配其他租户同名插件
-        plugin_obj: models.GsePluginDesc = models.GsePluginDesc.objects.get(
-            name=query_params["steps"][0]["id"], tenant_id=get_tenant_id()
-        )
+        # Official plugins are shared globally, while third-party plugins are isolated by tenant.
+        plugin_obj: models.GsePluginDesc = PolicyHandler.get_plugin_desc(query_params["steps"][0]["id"])
         tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(target_id=plugin_obj.id)
         # 匹配插件版本
         for host_info in result["list"]:
