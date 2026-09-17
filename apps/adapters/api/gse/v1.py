@@ -131,6 +131,10 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
             "task_id"
         ]
 
+    def _operate_proc(self, proc_operate_info: base.InfoDict, **options) -> str:
+        proc_operate_info["no_request"] = True
+        return self.gse_api_obj.operate_proc(proc_operate_info)["task_id"]
+
     def get_proc_operate_result(self, task_id: str) -> base.InfoDict:
         return self.gse_api_obj.get_proc_operate_result({"task_id": task_id, "no_request": True}, raw=True)
 

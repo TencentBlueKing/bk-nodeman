@@ -62,6 +62,7 @@ class GseApiMockClient(utils.BaseMockClient):
         self.operate_proc_multi = self.generate_magic_mock(mock_return_obj=operate_proc_multi_return)
         self.get_proc_operate_result = self.generate_magic_mock(mock_return_obj=get_proc_operate_result_return)
         self.get_proc_status = self.generate_magic_mock(mock_return_obj=get_proc_status_return)
+        self.get_proc_status_v2 = self.generate_magic_mock(mock_return_obj=get_proc_status_return)
         self.sync_proc_status = self.generate_magic_mock(mock_return_obj=sync_proc_status_return)
         self.update_proc_info = self.generate_magic_mock(mock_return_obj=update_proc_info_return)
         self.get_agent_info = self.generate_magic_mock(mock_return_obj=get_agent_info_return)

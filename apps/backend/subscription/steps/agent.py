@@ -173,7 +173,6 @@ class AgentAction(Action, abc.ABC):
             # 安装或重装code
             "query_password",
             "bind_host_agent",
-            "upgrade_to_agent_id",
             "push_agent_pkg_to_proxy",
             "install",
             "check_policy_gse_to_proxy",
@@ -569,7 +568,6 @@ class InstallAgent2(AgentAction):
             agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.bind_host_agent(),
-            agent_manager.upgrade_to_agent_id(),
             # 全业务文件分发依赖GSE 1.0 安装2.0时需要先安装1.0
             agent_manager.install_other_agent(extra_agent_version=GseVersion.V1.value)
             if all(
@@ -613,7 +611,6 @@ class InstallProxy2(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.bind_host_agent(),
-            agent_manager.upgrade_to_agent_id(),
             # 全业务文件分发依赖GSE 1.0 安装2.0时需要先安装1.0
             agent_manager.install_other_agent(
                 extra_agent_version=GseVersion.V1.value, node_type=constants.NodeType.PROXY

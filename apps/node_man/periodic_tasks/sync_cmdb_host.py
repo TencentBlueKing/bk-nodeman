@@ -616,9 +616,7 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
     """
     tenant_id__host_ids: typing.Dict[str, typing.List[int]] = defaultdict(list)
     exist_cmdb_host_ids: typing.List[int] = []
-    tenant_id_host_id_qs = models.ProcessStatus.objects.filter(bk_host_id__in=host_ids).values(
-        "tenant_id", "bk_host_id"
-    )
+    tenant_id_host_id_qs = models.Host.objects.filter(bk_host_id__in=host_ids).values("tenant_id", "bk_host_id")
     for tenant_id_host_id in tenant_id_host_id_qs:
         tenant_id__host_ids[tenant_id_host_id["tenant_id"]].append(tenant_id_host_id["bk_host_id"])
     for tenant_id, host_ids in tenant_id__host_ids.items():
