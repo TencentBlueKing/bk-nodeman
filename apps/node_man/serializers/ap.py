@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 from typing import List
 
 from django.utils.translation import gettext_lazy as _
@@ -83,6 +84,8 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     创建AP
     """
 
+    DEFAULT_WINDOWS_PLUGIN_IPC = 26000
+
     class ServersSerializer(serializers.Serializer):
         inner_ip = serializers.CharField(label=_("内网IP"), required=False)
         inner_ipv6 = serializers.CharField(label=_("内网IPv6"), required=False)
@@ -118,7 +121,19 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
 
+    @classmethod
+    def fill_agent_config_defaults(cls, agent_config):
+        linux_config = agent_config.setdefault(OsType.LINUX.lower(), {})
+        windows_config = agent_config.setdefault(OsType.WINDOWS.lower(), {})
+
+        if not linux_config.get("pluginipc") and linux_config.get("setup_path"):
+            linux_config["pluginipc"] = os.path.join(linux_config["setup_path"], "agent/lib/ipc.state.message")
+        if not windows_config.get("pluginipc"):
+            windows_config["pluginipc"] = cls.DEFAULT_WINDOWS_PLUGIN_IPC
+        return agent_config
+
     def validate(self, data):
+        data["agent_config"] = self.fill_agent_config_defaults(data.get("agent_config", {}))
         gse_version_list: List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))
         # 存量接入点版本全部为V2新建/更新版本也为V2版本
         if GseVersion.V1.value not in gse_version_list:

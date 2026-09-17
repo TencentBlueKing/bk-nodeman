@@ -94,6 +94,7 @@ export const apAgentInfo = [
     children: [
       { label: window.i18n.t('hostid路径'), required: true, prop: 'linuxHostidPath', rules: 'linuxPath' },
       { label: 'dataipc', required: true, prop: 'linuxDataipc', rules: 'linuxDataipc' },
+      { label: 'pluginipc', required: true, prop: 'linuxPluginipc', rules: 'linuxDataipc' },
       { label: window.i18n.t('安装路径'), required: true, prop: 'linuxSetupPath', rules: 'linuxInstallPath' },
       { label: window.i18n.t('数据文件路径'), required: true, prop: 'linuxDataPath', rules: 'linuxPath' },
       { label: window.i18n.t('运行时路径'), required: true, prop: 'linuxRunPath', rules: 'linuxPath' },
@@ -107,6 +108,7 @@ export const apAgentInfo = [
     children: [
       { label: window.i18n.t('hostid路径'), required: true, prop: 'windowsHostidPath', rules: 'winPath' },
       { label: 'dataipc', required: true, prop: 'windowsDataipc', rules: 'winDataipc', placeholder: window.i18n.t('请输入不小于零的整数') },
+      { label: 'pluginipc', required: true, prop: 'windowsPluginipc', rules: 'winDataipc', placeholder: window.i18n.t('请输入不小于零的整数') },
       { label: window.i18n.t('安装路径'), required: true, prop: 'windowsSetupPath', rules: 'winInstallPath' },
       { label: window.i18n.t('数据文件路径'), required: true, prop: 'windowsDataPath', rules: 'winPath' },
       { label: window.i18n.t('运行时路径'), required: true, prop: 'windowsRunPath', rules: 'winPath' },

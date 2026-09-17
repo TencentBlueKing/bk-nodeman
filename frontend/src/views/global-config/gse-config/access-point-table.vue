@@ -106,6 +106,7 @@ export default class AccessPointTable extends Vue {
 
   private pathMap: { [key: string]: string } = {
     dataipc: 'dataipc',
+    pluginipc: 'pluginipc',
     setup_path: window.i18n.t('安装路径'),
     hostid_path: window.i18n.t('hostid路径'),
     data_path: window.i18n.t('数据文件路径'),
@@ -115,8 +116,8 @@ export default class AccessPointTable extends Vue {
   };
   private serversSets =['BtfileServer', 'DataServer', 'TaskServer'];
   private serversOtherKeys = ['region_id', 'city_id', 'zookeeper', 'outer_callback_url', 'callback_url', 'package__url', 'nginx_path'];
-  private  sortLinux = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
-  private sortWin = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
+  private  sortLinux = ['hostid_path', 'dataipc', 'pluginipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
+  private sortWin = ['hostid_path', 'dataipc', 'pluginipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
   private formData = {};
 
   // 将表格rowspan的值计算出来

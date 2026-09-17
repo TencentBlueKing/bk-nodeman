@@ -89,6 +89,7 @@ export default class StepInfo extends Vue {
   private rules = apAgentInfoRules;
   private formData: Dictionary = {
     linuxDataipc: '/var/run/ipc.state.report',
+    linuxPluginipc: '/usr/local/gse/agent/lib/ipc.state.message',
     linuxHostidPath: '/var/lib/gse/host/hostid',
     linuxSetupPath: '/usr/local/gse',
     linuxDataPath: '/usr/local/gse',
@@ -97,6 +98,7 @@ export default class StepInfo extends Vue {
     linuxTempPath: '/tmp',
     windowsHostidPath: 'C:\\gse\\data\\host\\hostid',
     windowsDataipc: '',
+    windowsPluginipc: '26000',
     windowsSetupPath: 'C:\\gse',
     windowsDataPath: 'C:\\gse',
     windowsRunPath: 'c:\\gse\\run',
@@ -224,7 +226,7 @@ export default class StepInfo extends Vue {
     if (/linux/ig.test(prop)) {
       this.formData[prop] = `/${osDirReplace(arg[0])}`;
     } else {
-      if (prop === 'windowsDataipc') {
+      if (['windowsDataipc', 'windowsPluginipc'].includes(prop)) {
         return;
       }
       this.formData[prop] = osDirReplace(arg[0], '\\');
