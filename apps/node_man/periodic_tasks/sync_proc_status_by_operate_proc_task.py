@@ -30,6 +30,14 @@ QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT = 30
 SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY = 20
 
 
+def _get_int_global_setting(key: str, default: int) -> int:
+    try:
+        value = int(GlobalSettings.get_config(key=key, default=default))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 def _get_plugin_desc(proc_name: str) -> typing.Optional[GsePluginDesc]:
     plugin_desc = GsePluginDesc.objects.filter(name=proc_name, category=constants.CategoryType.official).first()
     return plugin_desc or GsePluginDesc.objects.filter(name=proc_name).first()
@@ -301,11 +309,15 @@ def _query_proc_status_by_operate_proc_multi(
 
     gse_task_id = gse_api_helper.operate_proc_multi(proc_operate_req=proc_operate_req)
     polling_time = 0
+    polling_timeout = _get_int_global_setting(
+        key=GlobalSettings.KeyEnum.QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT.value,
+        default=QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT,
+    )
     while True:
         result = gse_api_helper.get_proc_operate_result(gse_task_id)
         if result.get("code") != GSE_RUNNING_TASK_CODE and not _has_handling_operate_proc_result(result):
             break
-        if polling_time + POLLING_INTERVAL > QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT:
+        if polling_time + POLLING_INTERVAL > polling_timeout:
             logger.warning(
                 f"{task_id} | sync_proc_status_by_operate_proc_task: GSE operate_proc_multi status query timeout, "
                 f"proc_name -> {proc_name}, gse_task_id -> {gse_task_id}"
@@ -355,7 +367,11 @@ def _sync_proc_status_by_operate_proc_multi_for_host_batch_group(
         f"{task_id} | sync_proc_status_by_operate_proc_task: start to sync host batch group, "
         f"proc_name -> {proc_name}, batch_count -> {len(host_batch_group)}"
     )
-    with ThreadPoolExecutor(max_workers=SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY) as executor:
+    multi_concurrency = _get_int_global_setting(
+        key=GlobalSettings.KeyEnum.SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY.value,
+        default=SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY,
+    )
+    with ThreadPoolExecutor(max_workers=multi_concurrency) as executor:
         future_list = [
             executor.submit(
                 _sync_proc_status_by_operate_proc_multi_for_host_batch,
@@ -496,7 +512,15 @@ def _sync_proc_status_by_operate_proc(
     for proc_name in sync_proc_list:
         logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Start updating {proc_name} status")
         host_batch_group = []
-        for start in range(0, count, QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS):
+        batch_size = _get_int_global_setting(
+            key=GlobalSettings.KeyEnum.QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS.value,
+            default=QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS,
+        )
+        multi_concurrency = _get_int_global_setting(
+            key=GlobalSettings.KeyEnum.SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY.value,
+            default=SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY,
+        )
+        for start in range(0, count, batch_size):
             host_values = list(
                 host_queryset.order_by("bk_host_id")
                 .values(
@@ -509,12 +533,12 @@ def _sync_proc_status_by_operate_proc(
                     "bk_biz_id",
                     "os_type",
                     "cpu_arch",
-                )[start : start + QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS]
+                )[start : start + batch_size]
             )
             if not host_values:
                 continue
             host_batch_group.append(host_values)
-            if len(host_batch_group) < SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY:
+            if len(host_batch_group) < multi_concurrency:
                 continue
             _sync_proc_status_by_operate_proc_multi_for_host_batch_group(
                 task_id=task_id,

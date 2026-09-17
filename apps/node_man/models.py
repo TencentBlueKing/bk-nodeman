@@ -182,6 +182,12 @@ class GlobalSettings(models.Model):
         CMDB_INTERNAL_CLOUD_IDS = "CMDB_INTERNAL_CLOUD_IDS"
         # GSE查询进程状态信息分片大小
         QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
+        # GSE operate_proc_multi proc status query Agent ID batch size
+        QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS = "QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS"
+        # GSE operate_proc_multi proc status query polling timeout
+        QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT = "QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT"
+        # GSE operate_proc_multi proc status query concurrency
+        SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY = "SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
         # 租户 bk_username 映射

@@ -59,7 +59,7 @@ grant_permissions:
       - system_plugin_list_host
       - system_plugin_operate_plugin
       - system_plugin_v2_operate_plugin
-      - system_plugin_list_host
+      - system_backend_plugin_list_plugin
   # bk_dataweb
   - bk_app_code: bk_dataweb
     grant_dimension: "resource"
