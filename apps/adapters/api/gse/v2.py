@@ -121,6 +121,10 @@ class GseV2ApiHelper(GseV1ApiHelper):
             "task_id"
         ]
 
+    def _operate_proc(self, proc_operate_info: base.InfoDict, **options) -> str:
+        proc_operate_info["no_request"] = True
+        return self.gse_api_obj.operate_proc(proc_operate_info)["task_id"]
+
     def _upgrade_to_agent_id(self, hosts: base.InfoDictList) -> base.InfoDict:
         return self.gse_api_obj.upgrade_to_agent_id({"hosts": hosts, "no_request": True})
 

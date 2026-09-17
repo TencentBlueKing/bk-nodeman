@@ -190,11 +190,8 @@ def update_or_create_proc_status(
     )
 
 
-@periodic_task(
-    queue="default",
-    options={"queue": "default"},
-    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
-)
+
+@task(queue="default", ignore_result=True)
 def sync_proc_status_periodic_task():
 
     task_id = sync_proc_status_periodic_task.request.id

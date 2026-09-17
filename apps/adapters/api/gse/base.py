@@ -93,6 +93,16 @@ class GseApiBaseHelper(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def _operate_proc(self, proc_operate_info: InfoDict, **options) -> str:
+        """
+        进程操作
+        :param proc_operate_info: 进程操作信息
+        :param options: 其他可能需要的参数
+        :return:
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def _upgrade_to_agent_id(self, hosts: InfoDictList) -> InfoDict:
         """
         将基于Host IP的配置升级到基于Agent-ID的配置
@@ -213,9 +223,21 @@ class GseApiBaseHelper(abc.ABC):
         """
         preprocessed_proc_operate_req: InfoDictList = []
         for proc_operate_info in proc_operate_req:
+            if "agent_id_list" in proc_operate_info:
+                preprocessed_proc_operate_req.append(proc_operate_info)
+                continue
             hosts = proc_operate_info.pop("hosts")
             preprocessed_proc_operate_req.append(self.preprocessing_proc_operate_info(hosts, proc_operate_info))
         return self._operate_proc_multi(preprocessed_proc_operate_req, **options)
+
+    def operate_proc(self, proc_operate_info: InfoDict, **options) -> str:
+        """
+        进程操作
+        :param proc_operate_info: 进程操作信息
+        :param options: 其他可能需要的参数
+        :return:
+        """
+        return self._operate_proc(proc_operate_info, **options)
 
     def upgrade_to_agent_id(self, hosts: InfoDictList) -> InfoDict:
         return self._upgrade_to_agent_id(hosts)

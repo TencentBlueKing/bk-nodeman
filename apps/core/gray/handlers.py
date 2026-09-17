@@ -27,8 +27,8 @@ from apps.node_man.handlers.job import JobHandler
 from apps.node_man.periodic_tasks.sync_agent_status_task import (
     update_or_create_host_agent_status,
 )
-from apps.node_man.periodic_tasks.sync_proc_status_task import (
-    update_or_create_proc_status,
+from apps.node_man.periodic_tasks.sync_proc_status_by_operate_proc_task import (
+    update_or_create_proc_status_by_operate_proc,
 )
 from apps.utils import basic
 from env.constants import GseVersion
@@ -108,7 +108,9 @@ class GrayHandler:
             update_or_create_host_agent_status.delay(
                 task_id=f"activate[rollback={rollback}]", host_queryset=host_queryset
             )
-            update_or_create_proc_status.delay(task_id="update_host_ap_by_host_ids", host_queryset=host_queryset)
+            update_or_create_proc_status_by_operate_proc.delay(
+                task_id="update_host_ap_by_host_ids", host_queryset=host_queryset
+            )
             logger.info(f"[activate][rollback={rollback}] Start to sync Agent & Plugin status asynchronously")
         else:
             host_count: int = host_queryset.count()

@@ -44,6 +44,14 @@ class _GseV2Api(BaseApi):
             description="查询进程状态信息",
             api_name="get_proc_status_v2",
         )
+        self.operate_proc = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/operate_proc_v2/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="进程操作",
+            api_name="operate_proc",
+        )
         self.operate_proc_multi = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/operate_proc_multi/",
