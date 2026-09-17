@@ -46,19 +46,20 @@ grant_permissions:
   - bk_app_code: bk_sops
     grant_dimension: "resource"
     resource_names:
-      - system_ap_list
-      - system_cloud_list
-      - system_fetch_public_keys
-      - system_install_channel_list
+      - system_ap_list_ap
+      - system_cloud_list_cloud
+      - system_rsa_fetch_public_keys
+      - system_installchannel_list_install_channel
       - system_ipchooser_host_details
-      - system_job_details
-      - system_job_install
-      - system_job_operate
-      - system_list_packages
-      - system_get_job_log
-      - system_search_host_plugin
-      - system_operate_plugin
-      - system_plugin_list
+      - system_job_retrieve_job
+      - system_job_install_job
+      - system_job_operate_job
+      - system_plugin_list_package
+      - system_job_get_job_log
+      - system_plugin_list_host
+      - system_plugin_operate_plugin
+      - system_plugin_v2_operate_plugin
+      - system_plugin_list_host
   # bk_dataweb
   - bk_app_code: bk_dataweb
     grant_dimension: "resource"
@@ -68,81 +69,92 @@ grant_permissions:
   - bk_app_code: bk_bkdata
     grant_dimension: "resource"
     resource_names:
-      - system_subscription_create
-      - system_subscription_update
-      - system_subscription_info
-      - system_subscription_run
-      - system_subscription_switch
-      - system_subscription_instance_status
-      - system_subscription_task_result
-      - system_subscription_delete
-      - system_subscription_task_result_detail
-      - system_list_hosts
-      - system_search_host_plugin
+      - system_subscription_create_subscription
+      - system_subscription_update_subscription
+      - system_subscription_subscription_info
+      - system_subscription_run_subscription
+      - system_subscription_subscription_switch
+      - system_subscription_query_instance_status
+      - system_subscription_subscription_task_result
+      - system_subscription_delete_subscription
+      - system_subscription_subscription_task_result_detail
+      - system_host_list_host
+      - system_plugin_list_host
+      - system_ipchooser_host_details
   # bk_bcs_app
   - bk_app_code: bk_bcs_app
     grant_dimension: "resource"
     resource_names:
-      - system_cloud_list
-      - system_job_install
-      - system_job_details
-      - system_list_hosts
+      - system_cloud_list_cloud
+      - system_job_retrieve_job
+      - system_job_install_job
+      - system_host_list_host
+      - cloud_list_cloud
+      - job_retrieve_job
+      - job_install_job
+      - host_list_host
   # bk_monitorv3
   - bk_app_code: bk_monitorv3
     grant_dimension: "resource"
     resource_names:
-      - system_plugin_render_config_template
-      - system_plugin_start_debug
-      - system_plugin_query_debug
-      - system_plugin_stop_debug
-      - system_plugin_upload
-      - system_plugin_create_register_task
-      - system_plugin_query_register_task
-      - system_plugin_info
-      - system_plugin_create_config_template
-      - system_plugin_release
-      - system_plugin_release_config_template
-      - system_plugin_create_export_task
-      - system_plugin_query_export_task
-      - system_plugin_delete
-      - system_subscription_create
-      - system_subscription_info
-      - system_subscription_update
-      - system_subscription_delete
-      - system_subscription_run
-      - system_subscription_retry
-      - system_subscription_revoke
-      - system_subscription_task_result
-      - system_subscription_switch
-      - system_subscription_instance_status
-      - system_subscription_task_result_detail
-      - system_list_cloud_proxies
-      - system_list_biz_proxies
-      - system_operate_plugin
-      - system_search_host_plugin
-      - system_subscription_check_task_ready
+      - system_backend_plugin_render_plugin_config_template
+      - system_backend_plugin_start_debug
+      - system_backend_plugin_query_debug
+      - system_backend_plugin_stop_debug
+      - system_backend_plugin_upload
+      - system_backend_plugin_create_register_task
+      - system_backend_plugin_query_register_task
+      - system_backend_plugin_query_plugin_info
+      - system_backend_plugin_create_plugin_config_template
+      - system_backend_plugin_release_package
+      - system_backend_plugin_release_plugin_config_template
+      - system_plugin_v2_create_export_plugin_task
+      - system_plugin_v2_query_export_plugin_task
+      - system_backend_plugin_delete_plugin
+      - system_subscription_create_subscription
+      - system_subscription_subscription_info
+      - system_subscription_update_subscription
+      - system_subscription_delete_subscription
+      - system_subscription_run_subscription
+      - system_subscription_retry_subscription
+      - system_subscription_revoke_subscription
+      - system_subscription_subscription_task_result
+      - system_subscription_subscription_switch
+      - system_subscription_query_instance_status
+      - system_subscription_subscription_task_result_detail
+      - system_host_retrieve_cloud_proxies
+      - system_host_retrieve_biz_proxies
+      - system_plugin_operate_plugin
+      - system_plugin_list_host
+      - system_subscription_subscription_check_task_ready
       - system_subscription_statistic
       - system_ipchooser_host_details
   # bk_log_search
   - bk_app_code: bk_log_search
     grant_dimension: "resource"
     resource_names:
-      - system_subscription_create
-      - system_subscription_update
-      - system_subscription_info
-      - system_subscription_run
-      - system_subscription_instance_status
-      - system_subscription_task_result
-      - system_search_host_plugin
-      - system_subscription_check_task_ready
-      - system_subscription_delete
-      - system_subscription_task_result_detail
-      - system_subscription_switch
+      - system_subscription_create_subscription
+      - system_subscription_update_subscription
+      - system_subscription_subscription_info
+      - system_subscription_run_subscription
+      - system_subscription_query_instance_status
+      - system_subscription_subscription_task_result
+      - system_plugin_list_host
+      - system_subscription_subscription_check_task_ready
+      - system_subscription_delete_subscription
+      - system_subscription_subscription_task_result_detail
+      - system_subscription_subscription_switch
       - system_subscription_statistic
-      - system_query_host_subscriptions
-      - system_subscription_retry
+      - system_subscription_query_host_subscription_ids
+      - system_subscription_retry_subscription
       - system_ipchooser_host_details
-      - system_list_biz_proxies
+      - system_host_retrieve_biz_proxies
+  - bk_app_code: bk_dbm
+    grant_dimension: "resource"
+    resource_names:
+      - system_plugin_operate_plugin
+      - system_job_retrieve_job
+      - system_ipchooser_host_details
 
 resource_docs:
   # 资源文档的归档文件，可为 tar.gz，zip 格式文件；创建归档文件可使用指令 `tar czvf xxx.tgz en zh`
