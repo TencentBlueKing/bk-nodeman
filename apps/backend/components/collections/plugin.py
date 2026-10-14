@@ -31,6 +31,7 @@ from apps.backend.api.constants import (
     GseDataErrCode,
 )
 from apps.backend.api.job import process_parms
+from apps.backend import constants as backend_const
 from apps.backend.components.collections.base import BaseService, CommonData
 from apps.backend.components.collections.common.script_content import INITIALIZE_SCRIPT
 from apps.backend.components.collections.job import (
@@ -225,13 +226,30 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         return plugin_root_mapping[policy_step_adapter.plugin_desc.category]
 
 
+# 非版本变更类动作：重启/启停/重载等原地操作，不应改变进程当前已安装的版本
+NON_VERSION_CHANGE_ACTIONS = {
+    backend_const.ActionNameType.MAIN_RESTART_PLUGIN,
+    backend_const.ActionNameType.MAIN_START_PLUGIN,
+    backend_const.ActionNameType.MAIN_STOP_PLUGIN,
+    backend_const.ActionNameType.MAIN_RELOAD_PLUGIN,
+}
+
+
 class InitProcessStatusService(PluginBaseService):
     """初始化进程状态，持久化记录并用于后续流程使用"""
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
         action = data.get_one_of_inputs("action")
-        bk_host_ids = common_data.bk_host_ids
         subscription = common_data.subscription
+        # 仅一次性订阅（ONCE）的重启/启停/重载等原地操作需要沿用已安装的版本。
+        # 一次性任务每次都会生成新的 subscription_id，导致 group_id 变化、无法从本次订阅
+        # 查到历史版本；而策略订阅（POLICY）的版本由策略 details 精确决定，应尊重策略配置，
+        # 不应回落到 is_latest 记录覆盖策略意图。
+        keep_existing_version = (
+            action in NON_VERSION_CHANGE_ACTIONS
+            and subscription.category == models.Subscription.CategoryType.ONCE
+        )
+        bk_host_ids = common_data.bk_host_ids
         subscription_instances = common_data.subscription_instances
         host_id_obj_map = common_data.host_id_obj_map
         ap_id_obj_map = common_data.ap_id_obj_map
@@ -266,6 +284,20 @@ class InitProcessStatusService(PluginBaseService):
             )
             group_id_status_map = {status.group_id: status for status in statuses}
             host_id__bk_obj_sub_map = models.Subscription.get_host_id__bk_obj_sub_map(bk_host_ids, plugin_name)
+
+            # 非版本变更类动作（如重启/启停/重载）需沿用进程当前已安装的版本。
+            # 注意：一次性任务每次重启都会生成新的 subscription_id，导致 group_id 也变化，
+            # 因此无法通过本次订阅的 group_id 查询到历史版本，需改从「当前实际生效」的
+            # ProcessStatus 记录（is_latest=True, source_type=DEFAULT）获取已安装版本。
+            host_id__latest_version_map: Dict[int, str] = {}
+            if keep_existing_version:
+                for proc_status in models.ProcessStatus.objects.filter(
+                    name=plugin_name,
+                    bk_host_id__in=bk_host_ids,
+                    is_latest=True,
+                    source_type=models.ProcessStatus.SourceType.DEFAULT,
+                ).values("bk_host_id", "version"):
+                    host_id__latest_version_map[proc_status["bk_host_id"]] = proc_status["version"]
 
             for subscription_instance in subscription_instances:
                 # 策略抑制计算
@@ -303,6 +335,11 @@ class InitProcessStatusService(PluginBaseService):
                     version_str = getattr(package, "version", "")
                     if version_str in tag_name__obj_map:
                         version_str = tag_name__obj_map[package.version].target_version
+                    # 非版本变更类动作（如重启/启停/重载）应沿用进程当前已安装的版本，
+                    # 通过 is_latest=True 的 ProcessStatus 记录获取，避免 latest 等解析逻辑
+                    # 误取最新上传的包版本而覆盖已有正确版本
+                    if keep_existing_version and bk_host_id in host_id__latest_version_map:
+                        version_str = host_id__latest_version_map[bk_host_id]
                     process_status_property = dict(
                         bk_host_id=bk_host_id,
                         name=plugin_name,
