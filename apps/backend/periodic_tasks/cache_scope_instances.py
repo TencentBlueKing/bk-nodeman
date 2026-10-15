@@ -48,6 +48,6 @@ def cache_scope_instances():
     # TODO 可以再按 scope md5 聚合一次，避免重复缓存
     count = subscriptions.count()
     for index, subscription in enumerate(subscriptions):
-        countdown = calculate_countdown(count=count, index=index, duration=constants.SUBSCRIPTION_UPDATE_INTERVAL)
+        countdown = calculate_countdown(count=count, index=index, duration=constants.SUBSCRIPTION_TASK_SPREAD_INTERVAL)
         logger.info(f"[cache_scope_instances] ({subscription.id}) will be run after {countdown} seconds.")
         get_instances_by_scope_task.apply_async((subscription.id,), countdown=countdown)
