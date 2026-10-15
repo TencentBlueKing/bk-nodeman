@@ -226,8 +226,15 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         return plugin_root_mapping[policy_step_adapter.plugin_desc.category]
 
 
-# 非版本变更类动作：重启/启停/重载等原地操作，不应改变进程当前已安装的版本
+# 非版本变更类动作：重启/启停/重载等原地操作，不应改变进程当前已安装的版本。
+# 注意：实际注入 InitProcessStatusService 的 action 为无 MAIN_ 前缀的名称
+#（如 RESTART/START/STOP/RELOAD_PLUGIN，见各 Main*Plugin.ACTION_NAME），
+# 故此处需与实际 ACTION_NAME 对齐；同时兼容历史可能传入的 MAIN_* 前缀名称。
 NON_VERSION_CHANGE_ACTIONS = {
+    backend_const.ActionNameType.RESTART,
+    backend_const.ActionNameType.START,
+    backend_const.ActionNameType.STOP,
+    backend_const.ActionNameType.RELOAD_PLUGIN,
     backend_const.ActionNameType.MAIN_RESTART_PLUGIN,
     backend_const.ActionNameType.MAIN_START_PLUGIN,
     backend_const.ActionNameType.MAIN_STOP_PLUGIN,
