@@ -4,7 +4,7 @@ import logging
 from celery import current_app
 from django.db.models import Value
 
-from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL
+from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL, SUBSCRIPTION_TASK_SPREAD_INTERVAL
 from apps.backend.subscription.tasks import update_subscription_instances_chunk
 from apps.backend.subscription.tools import (
     by_biz_dispatch_task_queue,
@@ -41,7 +41,7 @@ def update_subscription_instances():
     count = len(subscription_ids)
     for index, subscription_id in enumerate(subscription_ids):
         # 把订阅平均分布到10分钟内执行，用于削峰
-        countdown = calculate_countdown(count=count, index=index, duration=SUBSCRIPTION_UPDATE_INTERVAL)
+        countdown = calculate_countdown(count=count, index=index, duration=SUBSCRIPTION_TASK_SPREAD_INTERVAL)
         task_queue = by_biz_dispatch_task_queue(biz_ids_gby_queue, subscription_id__biz_ids_map[subscription_id])
         logger.info(f"subscription({subscription_id}) will be run after {countdown} seconds in queue ({task_queue}).")
         update_subscription_instances_chunk.apply_async(([subscription_id],), countdown=countdown, queue=task_queue)

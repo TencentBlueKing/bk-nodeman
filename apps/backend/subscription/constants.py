@@ -18,6 +18,9 @@ from apps.node_man import constants
 # 自动下发触发周期
 SUBSCRIPTION_UPDATE_INTERVAL = 2 * constants.TimeUnit.HOUR
 
+# 削峰窗口时间，必须小于 RabbitMQ consumer_timeout（默认 30 分钟）。建议按照默认值的0.75左右去设置
+SUBSCRIPTION_TASK_SPREAD_INTERVAL = 25 * constants.TimeUnit.MINUTE
+
 # 检查僵尸订阅实例记录周期
 CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL = 15 * constants.TimeUnit.MINUTE
 # 僵尸订阅实例记录数量

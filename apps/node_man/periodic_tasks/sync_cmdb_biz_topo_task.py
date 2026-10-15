@@ -177,7 +177,7 @@ def sync_cmdb_biz_topo_periodic_task():
     bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info", []) if biz["default"] == 0]
     for index, bk_biz_id in enumerate(bk_biz_ids):
         countdown = calculate_countdown(
-            count=len(bk_biz_ids), index=index, duration=constants.SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL
+            count=len(bk_biz_ids), index=index, duration=constants.SYNC_CMDB_BIZ_TOPO_TASK_SPREAD_INTERVAL
         )
         logger.info(f"{task_id} | sync_cmdb_biz_topo_task after {countdown} seconds")
         get_and_cache_format_biz_topo.apply_async((bk_biz_id,), countdown=countdown)
