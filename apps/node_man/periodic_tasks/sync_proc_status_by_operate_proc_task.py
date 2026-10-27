@@ -14,12 +14,17 @@ import typing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from celery.task import periodic_task, task
+from django.db import DataError
 from django.db.models import QuerySet
 from django.db.transaction import atomic
 
+from apps.utils.sync import close_old_connections
+
 from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend.api.constants import GSE_RUNNING_TASK_CODE, POLLING_INTERVAL
+from apps.exceptions import ApiRequestError
 from apps.node_man import constants, tools
+from apps.utils.files import PathHandler
 from apps.node_man.models import GlobalSettings, GsePluginDesc, Host, Packages, ProcControl, ProcessStatus
 from common.log import logger
 from env import constants as env_constants
@@ -28,6 +33,10 @@ QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS = 1000
 QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT = 30
 SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY = 20
 
+# GSE API 网络请求重试配置（仅对网络类异常如 DNS/连接超时生效）
+GSE_API_REQUEST_RETRY_TIMES = 3
+GSE_API_REQUEST_RETRY_INTERVAL = 2
+
 
 def _get_int_global_setting(key: str, default: int) -> int:
     try:
@@ -35,6 +44,28 @@ def _get_int_global_setting(key: str, default: int) -> int:
     except (TypeError, ValueError):
         return default
     return value if value > 0 else default
+
+
+def _retry_gse_api_request(func: typing.Callable, *args, **kwargs):
+    """
+    对 GSE API 网络请求做带指数退避的重试，仅对网络类异常（ApiRequestError，如 DNS 解析失败、
+    连接超时等）生效；达到最大重试次数后仍失败则原样抛出。
+    """
+    last_exc = None
+    for attempt in range(1, GSE_API_REQUEST_RETRY_TIMES + 1):
+        try:
+            return func(*args, **kwargs)
+        except ApiRequestError as exc:
+            last_exc = exc
+            if attempt >= GSE_API_REQUEST_RETRY_TIMES:
+                break
+            sleep_seconds = GSE_API_REQUEST_RETRY_INTERVAL * attempt
+            logger.warning(
+                f"sync_proc_status_by_operate_proc_task: GSE API request failed (attempt {attempt}/"
+                f"{GSE_API_REQUEST_RETRY_TIMES}), will retry after {sleep_seconds}s, error -> {exc}"
+            )
+            time.sleep(sleep_seconds)
+    raise last_exc
 
 
 def _get_plugin_desc(proc_name: str) -> typing.Optional[GsePluginDesc]:
@@ -46,8 +77,6 @@ def _get_proc_control_by_machine_type(
     plugin: GsePluginDesc, os_type: str, cpu_arch: str
 ) -> typing.Optional[ProcControl]:
     query_params = {"project": plugin.name, "os": os_type, "cpu_arch": cpu_arch}
-    if not plugin.is_official:
-        query_params["tenant_id"] = plugin.tenant_id
     package = Packages.objects.filter(**query_params).order_by("-id").first()
     if not package:
         return None
@@ -68,53 +97,24 @@ def _get_gse_control(os_type: str, package_control: ProcControl) -> typing.Dict[
         "health_cmd": package_control.health_cmd,
     }
     if os_type == constants.OsType.WINDOWS:
-        setup_path = package_control.install_path
+        # ProcControl.install_path 仅存 agent 根目录（如 C:\gse_bkte），
+        # 官方插件的安装目录需拼上 PluginChildDir.OFFICIAL + "bin"（与 plugin.py 下发链路保持一致）。
+        setup_path = PathHandler(os_type).join(
+            package_control.install_path, constants.PluginChildDir.OFFICIAL.value, "bin"
+        )
+        # Windows 插件的 setup_path 需调整为左斜杠 /
+        setup_path = setup_path.replace("\\", "/")
+        reload_cmd = package_control.reload_cmd or package_control.restart_cmd
         gse_control = {
-            "start_cmd": f"{setup_path}/{package_control.start_cmd}" if package_control.start_cmd else "",
-            "stop_cmd": f"{setup_path}/{package_control.stop_cmd}" if package_control.stop_cmd else "",
-            "restart_cmd": f"{setup_path}/{package_control.restart_cmd}" if package_control.restart_cmd else "",
-            "reload_cmd": f"{setup_path}/{package_control.reload_cmd or package_control.restart_cmd}",
-            "kill_cmd": f"{setup_path}/{package_control.kill_cmd}" if package_control.kill_cmd else "",
-            "version_cmd": f"{setup_path}/{package_control.version_cmd}" if package_control.version_cmd else "",
-            "health_cmd": f"{setup_path}/{package_control.health_cmd}" if package_control.health_cmd else "",
+            "start_cmd": f"{setup_path}/{package_control.start_cmd}",
+            "stop_cmd": f"{setup_path}/{package_control.stop_cmd}",
+            "restart_cmd": f"{setup_path}/{package_control.restart_cmd}",
+            "reload_cmd": f"{setup_path}/{reload_cmd}",
+            "kill_cmd": f"{setup_path}/{package_control.kill_cmd}",
+            "version_cmd": f"{setup_path}/{package_control.version_cmd}",
+            "health_cmd": f"{setup_path}/{package_control.health_cmd}",
         }
     return gse_control
-
-
-def _get_default_resource_policy(plugin_name: str) -> typing.Dict[str, int]:
-    return {
-        "cpu": (constants.PLUGIN_DEFAULT_CPU_LIMIT, 30)[plugin_name == "bkunifylogbeat"],
-        "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT,
-    }
-
-
-def _get_hosts_with_agent_id_queryset():
-    return Host.objects.exclude(bk_agent_id__isnull=True).exclude(bk_agent_id="")
-
-
-def _iter_host_values_by_batch(batch_size: int):
-    last_bk_host_id = 0
-    while True:
-        host_values = list(
-            _get_hosts_with_agent_id_queryset()
-            .filter(bk_host_id__gt=last_bk_host_id)
-            .order_by("bk_host_id")
-            .values(
-                "bk_host_id",
-                "bk_agent_id",
-                "bk_cloud_id",
-                "inner_ip",
-                "inner_ipv6",
-                "ap_id",
-                "bk_biz_id",
-                "os_type",
-                "cpu_arch",
-            )[:batch_size]
-        )
-        if not host_values:
-            break
-        yield host_values
-        last_bk_host_id = host_values[-1]["bk_host_id"]
 
 
 def _build_operate_proc_query_groups(
@@ -147,16 +147,22 @@ def _build_operate_proc_query_groups(
             continue
 
         meta = {"namespace": constants.GSE_NAMESPACE, "name": plugin.name}
+        # ProcControl.install_path 仅存 agent 根目录（如 C:\gse_bkte），
+        # 官方插件的安装目录需拼上 PluginChildDir.OFFICIAL + "bin"（与 ProcessStatus.setup_path 及 GSE 协议保持一致）。
+        identity_setup_path = PathHandler(os_type).join(
+            package_control.install_path, constants.PluginChildDir.OFFICIAL.value, "bin"
+        )
+        # Windows 的 setup_path 需调整为左斜杠 /
+        identity_setup_path = identity_setup_path.replace("\\", "/")
         spec = {
             "identity": {
                 "index_key": "",
                 "proc_name": package_control.process_name or plugin.name,
-                "setup_path": package_control.install_path,
+                "setup_path": identity_setup_path,
                 "pid_path": package_control.pid_path,
                 "user": constants.ACCOUNT_MAP.get(os_type, "root"),
             },
             "control": _get_gse_control(os_type, package_control),
-            "resource": _get_default_resource_policy(plugin.name),
             "alive_monitor_policy": {
                 "auto_type": plugin.auto_type,
                 "start_check_secs": start_check_secs,
@@ -306,14 +312,14 @@ def _query_proc_status_by_operate_proc_multi(
     if not proc_operate_req:
         return {}
 
-    gse_task_id = gse_api_helper.operate_proc_multi(proc_operate_req=proc_operate_req)
+    gse_task_id = _retry_gse_api_request(gse_api_helper.operate_proc_multi, proc_operate_req=proc_operate_req)
     polling_time = 0
     polling_timeout = _get_int_global_setting(
         key=GlobalSettings.KeyEnum.QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT.value,
         default=QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT,
     )
     while True:
-        result = gse_api_helper.get_proc_operate_result(gse_task_id)
+        result = _retry_gse_api_request(gse_api_helper.get_proc_operate_result, gse_task_id)
         if result.get("code") != GSE_RUNNING_TASK_CODE and not _has_handling_operate_proc_result(result):
             break
         if polling_time + POLLING_INTERVAL > polling_timeout:
@@ -414,9 +420,23 @@ def _update_proc_status_records(
     to_be_updated_process_status_objs: typing.List[ProcessStatus] = []
     to_be_created_process_status_objs: typing.List[ProcessStatus] = []
 
+    # ProcessStatus.version 字段的 max_length，超出时截断并打日志，避免整批 bulk_create/bulk_update 失败
+    version_max_length = ProcessStatus._meta.get_field("version").max_length
+
     for agent_id, readable_proc_status in agent_id__readable_proc_status_map.items():
         if agent_id not in agent_id__host_id_map:
             continue
+
+        # 调试用：对超长 version 截断兜底，并打印真实返回值，排查 GSE 返回的异常版本号格式
+        _readable_version = readable_proc_status.get("version", "")
+        if isinstance(_readable_version, str) and len(_readable_version) > version_max_length:
+            logger.error(
+                f"{task_id} | sync_proc_status_by_operate_proc_task: got oversized version -> "
+                f"agent_id={agent_id}, bk_host_id={agent_id__host_id_map.get(agent_id)}, "
+                f"name={readable_proc_status.get('name')}, version_len={len(_readable_version)}, "
+                f"version={_readable_version!r}"
+            )
+            readable_proc_status["version"] = _readable_version[:version_max_length]
 
         db_proc_status_info: typing.Optional[typing.Dict[str, typing.Any]] = host_proc_key__proc_status_info_map.get(
             f'{readable_proc_status["name"]}:{agent_id__host_id_map[agent_id]}'
@@ -466,26 +486,47 @@ def _update_proc_status_records(
         f"count -> {not_need_to_be_updated_process_status_count}"
     )
 
-    with atomic():
-        if to_be_updated_process_status_objs:
-            ProcessStatus.objects.bulk_update(
-                to_be_updated_process_status_objs, fields=["status", "version", "is_auto"], batch_size=1000
-            )
-            logger.info(
-                f"{task_id} | sync_proc_status_by_operate_proc_task: "
-                f"Updated {len(to_be_updated_process_status_objs)} records"
-            )
-        if to_be_created_process_status_objs:
-            ProcessStatus.objects.bulk_create(to_be_created_process_status_objs, batch_size=1000)
-            logger.info(
-                f"{task_id} | sync_proc_status_by_operate_proc_task: "
-                f"Created {len(to_be_created_process_status_objs)} records"
-            )
-        if to_be_delete_process_status_ids:
-            __, delete_row_count = ProcessStatus.objects.filter(id__in=to_be_delete_process_status_ids).delete()
-            logger.info(
-                f"{task_id} | sync_proc_status_by_operate_proc_task: Deleted {delete_row_count} duplicate records"
-            )
+    try:
+        with atomic():
+            if to_be_updated_process_status_objs:
+                ProcessStatus.objects.bulk_update(
+                    to_be_updated_process_status_objs, fields=["status", "version", "is_auto"], batch_size=1000
+                )
+                logger.info(
+                    f"{task_id} | sync_proc_status_by_operate_proc_task: "
+                    f"Updated {len(to_be_updated_process_status_objs)} records"
+                )
+            if to_be_created_process_status_objs:
+                ProcessStatus.objects.bulk_create(to_be_created_process_status_objs, batch_size=1000)
+                logger.info(
+                    f"{task_id} | sync_proc_status_by_operate_proc_task: "
+                    f"Created {len(to_be_created_process_status_objs)} records"
+                )
+            if to_be_delete_process_status_ids:
+                __, delete_row_count = ProcessStatus.objects.filter(id__in=to_be_delete_process_status_ids).delete()
+                logger.info(
+                    f"{task_id} | sync_proc_status_by_operate_proc_task: Deleted {delete_row_count} duplicate records"
+                )
+    except DataError as err:
+        # 字段超长等数据异常：打印本批所有对象的 version（含长度），定位具体是哪条记录触发
+        logger.error(
+            f"{task_id} | sync_proc_status_by_operate_proc_task: DataError while writing process status -> {err}; "
+            f"to_be_updated_count={len(to_be_updated_process_status_objs)}, "
+            f"to_be_created_count={len(to_be_created_process_status_objs)}"
+        )
+        for _obj in to_be_updated_process_status_objs:
+            if _obj.version and len(_obj.version) > version_max_length:
+                logger.error(
+                    f"{task_id} | oversized update version -> bk_host_id={_obj.bk_host_id}, "
+                    f"name={_obj.name}, version_len={len(_obj.version)}, version={_obj.version!r}"
+                )
+        for _obj in to_be_created_process_status_objs:
+            if _obj.version and len(_obj.version) > version_max_length:
+                logger.error(
+                    f"{task_id} | oversized create version -> bk_host_id={_obj.bk_host_id}, "
+                    f"name={_obj.name}, version_len={len(_obj.version)}, version={_obj.version!r}"
+                )
+        raise
 
 
 
@@ -508,54 +549,106 @@ def _sync_proc_status_by_operate_proc(
         f"host_count -> {count}"
     )
 
-    for proc_name in sync_proc_list:
-        logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Start updating {proc_name} status")
-        host_batch_group = []
-        batch_size = _get_int_global_setting(
-            key=GlobalSettings.KeyEnum.QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS.value,
-            default=QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS,
+    batch_size = _get_int_global_setting(
+        key=GlobalSettings.KeyEnum.QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS.value,
+        default=QUERY_PROC_STATUS_OPERATE_PROC_AGENT_ID_LENS,
+    )
+    multi_concurrency = _get_int_global_setting(
+        key=GlobalSettings.KeyEnum.SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY.value,
+        default=SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY,
+    )
+
+    # agent 状态由 sync_agent_status_task 周期性落库（ProcessStatus name=gseagent）。
+    # 这里只读已算好的结果：状态不等于 RUNNING 的视为 agent 异常，不再向 GSE 查进程状态。
+    # 直接从 ProcessStatus 全表 exclude(RUNNING) 取出异常 host 的 id 集合，
+    # 不再加 bk_host_id__in 限制，也不再拉全量 host 做集合差。
+    # 前提：agent 状态已全量落库（无记录的 host 视为正常）。
+    abnormal_host_ids = set(
+        ProcessStatus.objects.filter(
+            name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            source_type=ProcessStatus.SourceType.DEFAULT,
         )
-        multi_concurrency = _get_int_global_setting(
-            key=GlobalSettings.KeyEnum.SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY.value,
-            default=SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY,
+        .exclude(status=constants.ProcStateType.RUNNING)
+        .values_list("bk_host_id", flat=True)
+    )
+    logger.info(
+        f"{task_id} | sync_proc_status_by_operate_proc_task: "
+        f"abnormal agent host count -> {len(abnormal_host_ids)}"
+    )
+
+    # 取 host + 排除 agent 异常的主机：与 proc_name 无关，流式分页。
+    # 每批在内存中按 abnormal_host_ids 判断（not in 即正常），不额外查库。
+    # 为减少发往 GSE 的请求次数，按「host 总数」而非「batch 个数」攒批：
+    # 把过滤后的 host 累加进缓冲，凑够 multi_concurrency × batch_size 个即切成
+    # multi_concurrency 个饱满 batch 组成 group（每批尽量接近 batch_size），内部对全部插件统一查询，
+    # 处理完即清空、进入下一组。内存峰值仍为 multi_concurrency × batch_size（不会攒全量 host 字典）。
+    group_host_capacity = multi_concurrency * batch_size
+    filtered_host_count = 0
+    pending_hosts: typing.List[typing.Dict[str, typing.Any]] = []
+    for start in range(0, count, batch_size):
+        host_values = list(
+            host_queryset.order_by("bk_host_id")
+            .values(
+                "bk_host_id",
+                "bk_agent_id",
+                "bk_cloud_id",
+                "inner_ip",
+                "inner_ipv6",
+                "ap_id",
+                "bk_biz_id",
+                "os_type",
+                "cpu_arch",
+            )[start : start + batch_size]
         )
-        for start in range(0, count, batch_size):
-            host_values = list(
-                host_queryset.order_by("bk_host_id")
-                .values(
-                    "bk_host_id",
-                    "bk_agent_id",
-                    "bk_cloud_id",
-                    "inner_ip",
-                    "inner_ipv6",
-                    "ap_id",
-                    "bk_biz_id",
-                    "os_type",
-                    "cpu_arch",
-                )[start : start + batch_size]
-            )
-            if not host_values:
-                continue
-            host_batch_group.append(host_values)
-            if len(host_batch_group) < multi_concurrency:
-                continue
+        if not host_values:
+            continue
+        host_values = [host for host in host_values if host["bk_host_id"] not in abnormal_host_ids]
+        if not host_values:
+            continue
+        filtered_host_count += len(host_values)
+        pending_hosts.extend(host_values)
+        if len(pending_hosts) < group_host_capacity:
+            continue
+        # 缓冲达到一个 group 的容量，切成 multi_concurrency 个饱满 batch 处理
+        host_batch_group = [
+            pending_hosts[i * batch_size : (i + 1) * batch_size] for i in range(multi_concurrency)
+        ]
+        pending_hosts = pending_hosts[group_host_capacity:]
+        # 当前 group 攒满，对全部插件统一查询后进入下一组
+        for proc_name in sync_proc_list:
+            logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Start updating {proc_name} status")
             _sync_proc_status_by_operate_proc_multi_for_host_batch_group(
                 task_id=task_id,
                 gse_api_helper=gse_api_helper,
                 proc_name=proc_name,
                 host_batch_group=host_batch_group,
             )
-            host_batch_group = []
+            logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Complete [{proc_name}] status update")
+        # 一轮（一个 group 的全部插件）查询完成后清理数据库连接，避免多线程/长轮询期间连接释放慢导致堆积
+        close_old_connections()
 
-        if host_batch_group:
+    # 处理最后剩余的 host（不足一个 group 容量，按 batch_size 切批，尾巴可能不足 batch_size）
+    if pending_hosts:
+        host_batch_group = [
+            pending_hosts[i * batch_size : (i + 1) * batch_size]
+            for i in range((len(pending_hosts) + batch_size - 1) // batch_size)
+        ]
+        for proc_name in sync_proc_list:
+            logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Start updating {proc_name} status")
             _sync_proc_status_by_operate_proc_multi_for_host_batch_group(
                 task_id=task_id,
                 gse_api_helper=gse_api_helper,
                 proc_name=proc_name,
                 host_batch_group=host_batch_group,
             )
-        logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Complete [{proc_name}] status update")
+            logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: Complete [{proc_name}] status update")
+        # 一轮（一个 group 的全部插件）查询完成后清理数据库连接，避免多线程/长轮询期间连接释放慢导致堆积
+        close_old_connections()
 
+    logger.info(
+        f"{task_id} | sync_proc_status_by_operate_proc_task: "
+        f"host after agent-status filter -> {filtered_host_count}"
+    )
     logger.info(f"{task_id} | sync_proc_status_by_operate_proc_task: sync host proc status complete")
 
 

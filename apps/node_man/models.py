@@ -186,6 +186,8 @@ class GlobalSettings(models.Model):
         QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT = "QUERY_PROC_STATUS_OPERATE_PROC_POLLING_TIMEOUT"
         # GSE operate_proc_multi proc status query concurrency
         SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY = "SYNC_PROC_STATUS_OPERATE_PROC_MULTI_CONCURRENCY"
+        # 订阅侧通过 operate_proc_multi 查询进程状态的最大并发数（独立于周期任务并发配置）
+        SUBSCRIPTION_PROC_STATUS_QUERY_MAX_WORKERS = "SUBSCRIPTION_PROC_STATUS_QUERY_MAX_WORKERS"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
         # 更新订阅实例长度
