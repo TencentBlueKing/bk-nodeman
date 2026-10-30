@@ -336,7 +336,7 @@ BK_CC_HOST = env.BK_CC_HOST
 BK_USER_URL = env.BK_USER_URL
 
 # 是否使用权限中心
-USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
+USE_IAM = False
 
 BK_IAM_APP_CODE = os.getenv("BK_IAM_V3_APP_CODE", "bk_iam")
 BK_IAM_INNER_HOST = os.getenv("BK_IAM_V3_INNER_HOST", "http://bkiam.service.consul:9081")
@@ -349,7 +349,7 @@ BK_IAM_MIGRATION_JSON_PATH = os.path.join(PROJECT_ROOT, "support-files/bkiam")
 BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
 
 BK_IAM_MIGRATION_APP_NAME = "iam_migrations"
-BK_IAM_SKIP = False
+BK_IAM_SKIP = True
 
 # CSRF问题:内部允许所有woa域名
 CSRF_TRUSTED_ORIGINS = [origin for origin in str(os.getenv("BKAPP_CSRF_TRUSTED_ORIGINS", "")).split(",") if origin]

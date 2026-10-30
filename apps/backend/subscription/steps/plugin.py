@@ -20,6 +20,11 @@ from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from apps.adapters.api.gse import get_gse_api_helper
+# get_proc_status_v2 已下线，复用周期任务已验证的异步查询接口（operate_proc_multi + 轮询 get_proc_operate_result）
+from apps.node_man.periodic_tasks.sync_proc_status_by_operate_proc_task import (  # noqa: E402
+    _build_operate_proc_query_groups,
+    _query_proc_status_by_operate_proc_multi,
+)
 from apps.backend import constants as backend_const
 from apps.backend.components.collections import plugin
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
@@ -627,18 +632,77 @@ class PluginStep(Step):
             gse_version__bk_host_id__host_map[instance["meta"]["GSE_VERSION"]][bk_host_id] = host_obj
             host_id__instance_id_map[bk_host_id] = instance_id
 
+        # get_proc_status_v2 已下线，改为与周期任务一致的异步接口查询进程状态：
+        # 通过 operate_proc_multi（op_type=STATUS）下发查询，再轮询 get_proc_operate_result 获取结果。
+        # operate_proc_multi 单次调用的 agent_id_list 有上限（GSE 侧限制），因此按 PROC_STATUS_QUERY_HOST_LENS
+        # 对 host_values 分批，并以可配置的最大并发数并发下发各批次。
+        PROC_STATUS_QUERY_HOST_LENS: int = 1000
+        # 订阅侧 operate_proc_multi 查询进程状态的最大并发数，由 GlobalSettings 动态配置，默认 10
+        PROC_STATUS_QUERY_MAX_WORKERS: int = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_PROC_STATUS_QUERY_MAX_WORKERS.value,
+            default=10,
+        )
+
+        def _query_proc_status_by_host_batch(
+            gse_api_helper,
+            proc_name: str,
+            task_id: str,
+            batch_host_values: List[Dict[str, Any]],
+        ) -> Dict[str, Dict[str, Any]]:
+            """单批次（≤PROC_STATUS_QUERY_HOST_LENS 台）查询进程状态"""
+            try:
+                query_groups = _build_operate_proc_query_groups(
+                    gse_api_helper=gse_api_helper,
+                    proc_name=proc_name,
+                    host_values=batch_host_values,
+                )
+                return _query_proc_status_by_operate_proc_multi(
+                    task_id=task_id,
+                    gse_api_helper=gse_api_helper,
+                    proc_name=proc_name,
+                    query_groups=query_groups,
+                )
+            finally:
+                # 线程池内子线程各自持有 DB 连接，任务结束及时释放，避免连接堆积导致 MySQL 连接数超限
+                from django.db import connections
+
+                connections.close_all()
+
         agent_id__readable_proc_status_map: Dict[str, Dict[str, Any]] = {}
         for gse_version, host_info_list in gse_version__host_info_list_map.items():
             gse_api_helper = get_gse_api_helper(gse_version)
-            agent_id__readable_proc_status_map.update(
-                gse_api_helper.list_proc_state(
-                    namespace=constants.GSE_NAMESPACE,
-                    proc_name=self.plugin_name,
-                    labels={"proc_name": self.plugin_name},
-                    host_info_list=host_info_list,
-                    extra_meta_data={},
-                )
-            )
+            # _build_operate_proc_query_groups 依赖 os_type/cpu_arch 选取 proc_control，
+            # 订阅侧 host_info_list 不含这两个字段，这里从已加载的 host_obj 补齐。
+            host_values = [
+                {
+                    "bk_host_id": host_obj.bk_host_id,
+                    "bk_agent_id": host_obj.bk_agent_id,
+                    "os_type": host_obj.os_type,
+                    "cpu_arch": host_obj.cpu_arch,
+                }
+                for host_obj in gse_version__bk_host_id__host_map[gse_version].values()
+            ]
+            # 按 PROC_STATUS_QUERY_HOST_LENS 切批，并以最大并发 PROC_STATUS_QUERY_MAX_WORKERS 下发
+            batch_params_list = [
+                {
+                    "gse_api_helper": gse_api_helper,
+                    "proc_name": self.plugin_name,
+                    "task_id": str(self.subscription.id),
+                    "batch_host_values": host_values[start : start + PROC_STATUS_QUERY_HOST_LENS],
+                }
+                for start in range(0, len(host_values), PROC_STATUS_QUERY_HOST_LENS)
+            ]
+            if len(batch_params_list) <= 1:
+                # 仅单批次时直接串行，省去线程池上下文切换
+                for batch_params in batch_params_list:
+                    agent_id__readable_proc_status_map.update(_query_proc_status_by_host_batch(**batch_params))
+                continue
+            from concurrent.futures.thread import ThreadPoolExecutor
+
+            with ThreadPoolExecutor(max_workers=PROC_STATUS_QUERY_MAX_WORKERS) as ex:
+                futures = [ex.submit(_query_proc_status_by_host_batch, **batch_params) for batch_params in batch_params_list]
+            for future in futures:
+                agent_id__readable_proc_status_map.update(future.result())
 
         logger.info(f"agent_id__readable_proc_status_map -> {agent_id__readable_proc_status_map}")
 
