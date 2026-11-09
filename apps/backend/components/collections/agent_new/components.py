@@ -25,6 +25,7 @@ from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .install_other_agent import InstallOtherAgentService
 from .install_plugins import InstallPluginsService
+from .start_nginx import StartNginxService
 from .push_agent_pkg_to_proxy import PushAgentPkgToProxyService
 from .push_environ_files import PushEnvironFilesService
 from .push_files_to_proxy import PushFilesToProxyService
@@ -221,3 +222,8 @@ class InstallOtherAgentComponent(Component):
     name = _("安装额外Agent")
     code = "install_other_agent"
     bound_service = InstallOtherAgentService
+
+class StartNginxComponent(Component):
+    name = _("启动 NGINX 服务")
+    code = "start_nginx"
+    bound_service = StartNginxService
