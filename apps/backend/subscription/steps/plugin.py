@@ -678,15 +678,11 @@ class PluginStep(Step):
                 {
                     "bk_host_id": host_obj.bk_host_id,
                     "bk_agent_id": host_obj.bk_agent_id,
-                    "bk_cloud_id": host_obj.bk_cloud_id,
-                    "bk_host_innerip": host_obj.inner_ip,
-                    "bk_host_innerip_v6": host_obj.inner_ipv6,
-                    "inner_ip": host_obj.inner_ip,
-                    "inner_ipv6": host_obj.inner_ipv6,
                     "os_type": host_obj.os_type,
                     "cpu_arch": host_obj.cpu_arch,
                 }
                 for host_obj in gse_version__bk_host_id__host_map[gse_version].values()
+                if host_obj.bk_agent_id
             ]
             # 按 PROC_STATUS_QUERY_HOST_LENS 切批，并以最大并发 PROC_STATUS_QUERY_MAX_WORKERS 下发
             batch_params_list = [
