@@ -624,6 +624,9 @@ BACKEND_JOB_OPERATOR = os.getenv("BKAPP_BACKEND_JOB_OPERATOR", "admin")
 BACKEND_GSE_OPERATOR = os.getenv("BKAPP_BACKEND_GSE_OPERATOR", "admin")
 BACKEND_SOPS_OPERATOR = os.getenv("BKAPP_BACKEND_SOPS_OPERATOR", "admin")
 
+# 后台任务 / 多租户场景使用的默认虚拟用户名（bk_username），可被环境变量覆盖
+BKAPP_BK_ADMIN_USERNAME = os.getenv("BKAPP_BK_ADMIN_USERNAME", "bk_admin")
+
 # Windows的作业执行账户
 BACKEND_WINDOWS_ACCOUNT = os.getenv("BKAPP_BACKEND_WINDOWS_ACCOUNT", "system")
 BACKEND_UNIX_ACCOUNT = os.getenv("BKAPP_BACKEND_UNIX_ACCOUNT", "root")
@@ -810,6 +813,7 @@ if BK_BACKEND_CONFIG:
             "HOST": os.getenv("MYSQL_HOST"),
             "PORT": os.getenv("MYSQL_PORT"),
             "OPTIONS": {"isolation_level": "repeatable read"},
+            "CONN_MAX_AGE": 60,  # 回收线程 worker 持有的空闲连接，避免 Sleep 连接无限堆积
         }
     }
 

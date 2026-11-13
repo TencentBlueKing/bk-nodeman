@@ -35,7 +35,7 @@ def get_virtual_username(tenant_id):
     response = requests.get(
         USER_APIGATEWAY_ROOT_V3 + "open/tenant/virtual-users/-/lookup/",
         headers={"X-Bkapi-Authorization": json.dumps(auth_data), "X-Bk-Tenant-Id": tenant_id},
-        params={"lookup_field": "login_name", "lookups": "bk_admin"},
+        params={"lookup_field": "login_name", "lookups": settings.BKAPP_BK_ADMIN_USERNAME},
     )
     if response.status_code == 200:
         result = response.json()
@@ -47,7 +47,7 @@ def get_virtual_username(tenant_id):
                 key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, value=tenant_bk_username_map
             )
             return bk_username
-    return "bk_admin"
+    return settings.BKAPP_BK_ADMIN_USERNAME
 
 
 def _clean_auth_info_uin(auth_info):

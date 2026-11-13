@@ -265,6 +265,9 @@ bkIamApiUrl: "http://bkiam-api.example.com"
 ## 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个
 bkRepoUrl: "http://bkrepo.example.com"
 
+## 后台任务 / 多租户场景下使用的默认虚拟用户名（bk_username）
+bkAppBkAdminUsername: "bk_admin"
+
 # 文档中心跳转链接
 bkDocsCenterHost: ""
 

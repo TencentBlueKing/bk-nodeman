@@ -167,3 +167,4 @@ data:
   TENANT_BLUEKING_SCOPE_ID: "{{ .Values.config.TenantBluekingScopeId}}"
   BKPAAS_MULTI_TENANT_MODE: "{{ .Values.config.bkPaasMultiTenantMode}}"
   BKPAAS_APP_TENANT_ID: "{{ .Values.config.bkPaasTenantId}}"
+  BKAPP_BK_ADMIN_USERNAME: "{{ .Values.bkAppBkAdminUsername }}"
