@@ -266,7 +266,7 @@ bkIamApiUrl: "http://bkiam-api.example.com"
 bkRepoUrl: "http://bkrepo.example.com"
 
 ## 后台任务 / 多租户场景下使用的默认虚拟用户名（bk_username）
-bkAppBkAdminUsername: "bk_admin"
+bkAdminUsername: "bk_admin"
 
 # 文档中心跳转链接
 bkDocsCenterHost: ""
