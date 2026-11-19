@@ -103,7 +103,7 @@ def collect_auto_trigger_job():
                 status=constants.JobStatusType.RUNNING,
                 statistics={f"{k}_count": 0 for k in ["success", "failed", "pending", "running", "total"]},
                 error_hosts=[],
-                created_by=get_virtual_username(get_tenant_id()) if settings.ENABLE_MULTI_TENANT_MODE else "admin",
+                created_by=get_virtual_username(get_tenant_id()),
                 from_system=settings.APP_CODE,
                 # TODO 将历史多个自动触发task先行整合到一个job，后续根据实际情况考虑是否拆分
                 task_id_list=task_ids_gby_sub_id[subscription["id"]],

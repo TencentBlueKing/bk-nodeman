@@ -18,6 +18,7 @@ from apps.node_man import constants, models
 from apps.utils.batch_request import request_multi_thread
 from common.api import NodeApi
 from common.api.exception import DataAPIException
+from common.api.utils.params import get_virtual_username
 
 from ..base import CommonData
 from ..subsubscription import SubSubscriptionBaseService
@@ -45,6 +46,7 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
                 project__in=auto_launch_plugin_names, os__in=host_ids_group_by_os.keys()
             ).values_list("project", "os")
         )
+        bk_username = get_virtual_username(tenant_id)
         params_list = []
         for (plugin_name, os_type) in plugin_name__os_type_set:
             params_list.append(
@@ -52,7 +54,7 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
                     "params": {
                         "run_immediately": True,
                         "category": models.Subscription.CategoryType.ONCE,
-                        "bk_username": settings.SYSTEM_USE_API_ACCOUNT,
+                        "bk_username": bk_username,
                         "scope": {
                             "node_type": models.Subscription.NodeType.INSTANCE,
                             "object_type": models.Subscription.ObjectType.HOST,

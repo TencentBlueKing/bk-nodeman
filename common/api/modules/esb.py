@@ -11,6 +11,9 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from apps.utils.local import get_tenant_id
+from common.api.utils.params import get_virtual_username
+
 from ..base import BaseApi, DataAPI
 from ..domains import ESB_APIGATEWAY_ROOT_V2
 
@@ -18,7 +21,7 @@ from ..domains import ESB_APIGATEWAY_ROOT_V2
 def add_params_before_request(params):
     params["bk_app_code"] = settings.APP_CODE
     params["bk_app_secret"] = settings.SECRET_KEY
-    params["bk_username"] = "admin"
+    params["bk_username"] = get_virtual_username(get_tenant_id())
     return params
 
 

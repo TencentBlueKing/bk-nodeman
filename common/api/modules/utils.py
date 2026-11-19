@@ -44,13 +44,10 @@ if is_celery or is_manage:
         params["bkdata_authentication_method"] = "user"
 
         if "bk_username" not in params:
-            if settings.ENABLE_MULTI_TENANT_MODE:
-                params["bk_username"] = get_virtual_username(get_tenant_id())
-            else:
-                params["bk_username"] = "admin"
+            params["bk_username"] = get_virtual_username(get_tenant_id())
 
         if "operator" not in params:
-            params["operator"] = "admin"
+            params["operator"] = get_virtual_username(get_tenant_id())
         return params
 
 
@@ -70,10 +67,7 @@ else:
         params["appenv"] = settings.RUN_VER
 
         if "no_request" in params and params["no_request"]:
-            if settings.ENABLE_MULTI_TENANT_MODE:
-                params["bk_username"] = get_virtual_username(get_tenant_id())
-            else:
-                params["bk_username"] = "admin"
+            params["bk_username"] = get_virtual_username(get_tenant_id())
         else:
             req = get_request()
             auth_info = build_auth_args(req)

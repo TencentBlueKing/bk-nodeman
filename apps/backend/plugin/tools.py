@@ -30,6 +30,7 @@ from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import enum, env, files
 from apps.utils.local import get_tenant_id
+from common.api.utils.params import get_virtual_username
 
 logger = logging.getLogger("app")
 
@@ -668,7 +669,7 @@ def create_pkg_record(
             pkg_name=pkg_parse_info["pkg_name"],
             version=pkg_parse_info["version"],
             module="gse_plugin",
-            creator=creator or settings.SYSTEM_USE_API_ACCOUNT,
+            creator=creator or get_virtual_username(tenant_id),
             project=project,
             pkg_size=0,
             pkg_path="",

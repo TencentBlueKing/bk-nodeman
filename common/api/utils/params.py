@@ -77,10 +77,7 @@ if IS_BACKEND:
             params["bk_app_secret"] = settings.SECRET_KEY
 
         if "bk_username" not in params:
-            if settings.ENABLE_MULTI_TENANT_MODE:
-                params["bk_username"] = get_virtual_username(get_tenant_id())
-            else:
-                params["bk_username"] = "admin"
+            params["bk_username"] = get_virtual_username(get_tenant_id())
 
         params.pop("_request", None)
         return params
@@ -101,10 +98,7 @@ else:
             params["bk_app_secret"] = settings.SECRET_KEY
 
         if "no_request" in params and params["no_request"]:
-            if settings.ENABLE_MULTI_TENANT_MODE:
-                params["bk_username"] = get_virtual_username(get_tenant_id())
-            else:
-                params["bk_username"] = "admin"
+            params["bk_username"] = get_virtual_username(get_tenant_id())
         else:
             # _request，用于并发请求的场景
             _request = params.get("_request")

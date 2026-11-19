@@ -71,7 +71,7 @@ def get_biz_bk_host_id(bk_biz_id, hosts):
         kwargs = {
             "bk_app_code": APP_CODE,
             "bk_app_secret": APP_SECRET,
-            "bk_username": get_virtual_username(get_tenant_id()) if settings.ENABLE_MULTI_TENANT_MODE else "admin",
+            "bk_username": get_virtual_username(get_tenant_id()),
             "bk_biz_id": bk_biz_id,
             "bk_supplier_account": "0",
             "page": {"start": start, "limit": 500, "sort": "bk_host_id"},
@@ -323,9 +323,7 @@ def migrate_cloud_creator(clouds):
                             json={
                                 "bk_app_code": APP_CODE,
                                 "bk_app_secret": APP_SECRET,
-                                "bk_username": get_virtual_username(get_tenant_id())
-                                if settings.ENABLE_MULTI_TENANT_MODE
-                                else "admin",
+                                "bk_username": get_virtual_username(get_tenant_id()),
                                 "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
                                 "condition": {"bk_biz_id": int(bk_biz_id)},
                             },
